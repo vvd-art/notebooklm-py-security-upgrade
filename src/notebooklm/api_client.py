@@ -1336,13 +1336,14 @@ class NotebookLMClient:
         quantity_code = quantity.value if quantity else 2
         difficulty_code = difficulty.value if difficulty else 2
 
+        # Quiz uses variant code 2 to distinguish from flashcards (which uses 1)
         params = [
             [2],
             notebook_id,
             [
                 None,
                 None,
-                4,
+                4,  # StudioContentType for quiz/flashcards
                 source_ids_triple,
                 None,
                 None,
@@ -1352,14 +1353,14 @@ class NotebookLMClient:
                 [
                     None,
                     [
-                        quantity_code,
+                        2,  # Variant code: 2 = quiz
                         None,
                         instructions,
                         None,
                         None,
                         None,
                         None,
-                        [difficulty_code, difficulty_code],
+                        [quantity_code, difficulty_code],
                     ],
                 ],
             ],
@@ -1417,13 +1418,14 @@ class NotebookLMClient:
         quantity_code = quantity.value if quantity else 2
         difficulty_code = difficulty.value if difficulty else 2
 
+        # Flashcards uses variant code 1 to distinguish from quiz (which uses 2)
         params = [
             [2],
             notebook_id,
             [
                 None,
                 None,
-                4,
+                4,  # StudioContentType for quiz/flashcards
                 source_ids_triple,
                 None,
                 None,
@@ -1433,13 +1435,13 @@ class NotebookLMClient:
                 [
                     None,
                     [
-                        quantity_code,
+                        1,  # Variant code: 1 = flashcards
                         None,
                         instructions,
                         None,
                         None,
                         None,
-                        [difficulty_code, difficulty_code],
+                        [difficulty_code, quantity_code],
                     ],
                 ],
             ],
