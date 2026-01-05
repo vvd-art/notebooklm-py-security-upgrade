@@ -87,6 +87,11 @@ class SourceService:
         return Source.from_api_response(result)
 
     async def delete(self, notebook_id: str, source_id: str) -> bool:
-        """Delete a source from a notebook."""
-        result = await self._client.delete_source(notebook_id, source_id)
-        return bool(result[0]) if result else False
+        """Delete a source from a notebook.
+
+        Returns:
+            True if delete succeeded (no exception raised).
+        """
+        await self._client.delete_source(notebook_id, source_id)
+        # If no exception was raised, delete succeeded (even if RPC returns None)
+        return True
