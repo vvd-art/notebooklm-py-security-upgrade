@@ -2865,7 +2865,9 @@ def note_delete(ctx, note_id, notebook_id, yes):
 
         async def _delete():
             async with NotebookLMClient(auth) as client:
-                return await client.delete_note(nb_id, note_id)
+                await client.delete_note(nb_id, note_id)
+                # If no exception was raised, delete succeeded
+                return True
 
         run_async(_delete())
         console.print(f"[green]Deleted note:[/green] {note_id}")
