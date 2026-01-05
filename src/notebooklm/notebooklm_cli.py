@@ -25,6 +25,7 @@ LLM-friendly design:
 
 import asyncio
 import json
+from datetime import datetime
 from pathlib import Path
 
 import click
@@ -54,6 +55,19 @@ from .rpc import (
 )
 
 console = Console()
+
+# Artifact type display mapping
+ARTIFACT_TYPE_DISPLAY = {
+    1: "🎵 Audio Overview",
+    2: "📄 Briefing Doc",
+    3: "🎥 Video Overview",
+    4: "📝 Quiz",
+    5: "🧠 Mind Map",
+    6: "📊 Report",
+    7: "🖼️ Infographic",
+    8: "🎞️ Slide Deck",
+    9: "📋 Data Table",
+}
 
 # Persistent browser profile directory
 BROWSER_PROFILE_DIR = Path.home() / ".notebooklm" / "browser_profile"
@@ -897,7 +911,8 @@ def artifact():
 
 
 @artifact.command("list")
-@click.argument("notebook_id")
+@click.option("-n", "--notebook", "notebook_id", default=None,
+              help="Notebook ID (uses current if not set)")
 @click.option("--type", "artifact_type",
               type=click.Choice(["all", "video", "slide-deck", "quiz", "flashcard",
                                 "infographic", "data-table", "mind-map", "briefing-doc"]),
@@ -906,29 +921,30 @@ def artifact():
 def artifact_list(ctx, notebook_id, artifact_type):
     """List artifacts in a notebook."""
     try:
+        nb_id = require_notebook(notebook_id)
         cookies, csrf, session_id = get_client(ctx)
         auth = AuthTokens(cookies=cookies, csrf_token=csrf, session_id=session_id)
 
         async def _list():
             async with NotebookLMClient(auth) as client:
                 if artifact_type == "all":
-                    return await client.list_artifacts(notebook_id), "all"
+                    return await client.list_artifacts(nb_id), "all"
                 elif artifact_type == "video":
-                    return await client.list_video_overviews(notebook_id), "video"
+                    return await client.list_video_overviews(nb_id), "video"
                 elif artifact_type == "slide-deck":
-                    return await client.list_slide_decks(notebook_id), "slide-deck"
+                    return await client.list_slide_decks(nb_id), "slide-deck"
                 elif artifact_type == "quiz":
-                    return await client.list_quizzes(notebook_id), "quiz"
+                    return await client.list_quizzes(nb_id), "quiz"
                 elif artifact_type == "flashcard":
-                    return await client.list_flashcards(notebook_id), "flashcard"
+                    return await client.list_flashcards(nb_id), "flashcard"
                 elif artifact_type == "infographic":
-                    return await client.list_infographics(notebook_id), "infographic"
+                    return await client.list_infographics(nb_id), "infographic"
                 elif artifact_type == "data-table":
-                    return await client.list_data_tables(notebook_id), "data-table"
+                    return await client.list_data_tables(nb_id), "data-table"
                 elif artifact_type == "mind-map":
-                    return await client.list_mind_maps(notebook_id), "mind-map"
+                    return await client.list_mind_maps(nb_id), "mind-map"
                 elif artifact_type == "briefing-doc":
-                    return await client.list_briefing_docs(notebook_id), "briefing-doc"
+                    return await client.list_briefing_docs(nb_id), "briefing-doc"
                 return [], artifact_type
 
         artifacts, atype = run_async(_list())
@@ -937,20 +953,38 @@ def artifact_list(ctx, notebook_id, artifact_type):
             console.print(f"[yellow]No {atype} artifacts found[/yellow]")
             return
 
-        table = Table(title=f"{atype.title()} Artifacts in {notebook_id}")
+        table = Table(title=f"Artifacts in {nb_id}")
         table.add_column("ID", style="cyan")
         table.add_column("Title", style="green")
+        table.add_column("Type")
+        table.add_column("Created", style="dim")
         table.add_column("Status", style="yellow")
 
         for art in artifacts:
             if isinstance(art, list) and len(art) > 0:
+                # Artifact structure: [id, title, type, ..., status, ..., created_at_list, ...]
+                # Index 15 contains [seconds, nanoseconds] for creation time
                 art_id = str(art[0] or "-")
                 title = str(art[1] if len(art) > 1 else "-")
+                type_id = art[2] if len(art) > 2 else None
                 status_code = art[4] if len(art) > 4 else None
-                status = "completed" if status_code == 3 else "processing" if status_code == 1 else str(status_code)
-                table.add_row(art_id, title, status)
+                created_at_list = art[15] if len(art) > 15 else None
+
+                # Format type
+                type_display = ARTIFACT_TYPE_DISPLAY.get(type_id, f"Unknown ({type_id})" if type_id else "-")
+
+                # Format timestamp - extract seconds from [seconds, nanoseconds] list
+                if created_at_list and isinstance(created_at_list, list) and len(created_at_list) > 0:
+                    created = datetime.fromtimestamp(created_at_list[0]).strftime("%Y-%m-%d %H:%M")
+                else:
+                    created = "-"
+
+                # Format status
+                status = "completed" if status_code == 3 else "processing" if status_code == 1 else str(status_code) if status_code else "-"
+
+                table.add_row(art_id, title, type_display, created, status)
             elif isinstance(art, dict):
-                table.add_row(art.get("id", "-"), art.get("title", "-"), "-")
+                table.add_row(art.get("id", "-"), art.get("title", "-"), "-", "-", "-")
 
         console.print(table)
 

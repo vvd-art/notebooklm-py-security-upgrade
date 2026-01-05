@@ -60,44 +60,45 @@ ARTIFACT_TYPE_DISPLAY = {
 
 ### 3. Table Structure
 
-**New Columns:**
+**New Column Order:**
 - ID (existing)
-- **Type** (new)
 - Title (existing)
-- Status (existing)
+- **Type** (new)
 - **Created** (new)
+- Status (existing - moved to end)
 
 **Implementation:**
 ```python
 table = Table(title=f"Artifacts in {notebook_id}")
 table.add_column("ID", style="cyan")
-table.add_column("Type")
 table.add_column("Title", style="green")
-table.add_column("Status", style="yellow")
+table.add_column("Type")
 table.add_column("Created", style="dim")
+table.add_column("Status", style="yellow")
 
 for art in artifacts:
     if isinstance(art, list) and len(art) > 0:
-        # Artifact structure: [id, title, type, created_at, status, ...]
+        # Artifact structure: [id, title, type, ..., status, ..., created_at_list, ...]
+        # Index 15 contains [seconds, nanoseconds] for creation time
         art_id = str(art[0] or "-")
         title = str(art[1] if len(art) > 1 else "-")
         type_id = art[2] if len(art) > 2 else None
-        created_at_ms = art[3] if len(art) > 3 else None
         status_code = art[4] if len(art) > 4 else None
+        created_at_list = art[15] if len(art) > 15 else None
 
         # Format type
         type_display = ARTIFACT_TYPE_DISPLAY.get(type_id, f"Unknown ({type_id})")
 
-        # Format timestamp
-        if created_at_ms:
-            created = datetime.fromtimestamp(created_at_ms / 1000).strftime("%Y-%m-%d %H:%M")
+        # Format timestamp - extract seconds from [seconds, nanoseconds] list
+        if created_at_list and isinstance(created_at_list, list) and len(created_at_list) > 0:
+            created = datetime.fromtimestamp(created_at_list[0]).strftime("%Y-%m-%d %H:%M")
         else:
             created = "-"
 
         # Format status
         status = "completed" if status_code == 3 else "processing" if status_code == 1 else str(status_code)
 
-        table.add_row(art_id, type_display, title, status, created)
+        table.add_row(art_id, title, type_display, created, status)
 ```
 
 ### 4. Edge Cases
@@ -111,13 +112,13 @@ for art in artifacts:
 
 ```
 Artifacts in nb_abc123
-┌─────────┬──────────────────────┬─────────────────┬───────────┬─────────────────┐
-│ ID      │ Type                 │ Title           │ Status    │ Created         │
-├─────────┼──────────────────────┼─────────────────┼───────────┼─────────────────┤
-│ art_123 │ 🎵 Audio Overview    │ Chapter 1       │ completed │ 2026-01-05 14:30│
-│ art_124 │ 🎥 Video Overview    │ Introduction    │ processing│ 2026-01-05 15:15│
-│ art_125 │ 🖼️ Infographic      │ Summary Stats   │ completed │ 2026-01-04 09:20│
-└─────────┴──────────────────────┴─────────────────┴───────────┴─────────────────┘
+┌─────────┬─────────────────┬──────────────────────┬─────────────────┬───────────┐
+│ ID      │ Title           │ Type                 │ Created         │ Status    │
+├─────────┼─────────────────┼──────────────────────┼─────────────────┼───────────┤
+│ art_123 │ Chapter 1       │ 🎵 Audio Overview    │ 2026-01-05 14:30│ completed │
+│ art_124 │ Introduction    │ 🎥 Video Overview    │ 2026-01-05 15:15│ processing│
+│ art_125 │ Summary Stats   │ 🖼️ Infographic      │ 2026-01-04 09:20│ completed │
+└─────────┴─────────────────┴──────────────────────┴─────────────────┴───────────┘
 ```
 
 ## Implementation Notes
