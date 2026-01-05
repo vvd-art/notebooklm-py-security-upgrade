@@ -450,15 +450,26 @@ class TestGetSource:
         httpx_mock: HTTPXMock,
         build_rpc_response,
     ):
+        # get_source now filters from get_notebook, so mock GET_NOTEBOOK response
         response = build_rpc_response(
-            "hizoJc", ["source_456", "Source Title", "Content preview..."]
+            "rLM1Ne",
+            [
+                [
+                    "Test Notebook",
+                    [
+                        [["source_456"], "Source Title", [None, 0, [1704067200, 0]]],
+                        [["source_789"], "Other Source", [None, 0, [1704153600, 0]]],
+                    ],
+                    "nb_123",
+                ]
+            ],
         )
         httpx_mock.add_response(content=response.encode())
 
         async with NotebookLMClient(auth_tokens) as client:
             result = await client.get_source("nb_123", "source_456")
 
-        assert result[0] == "source_456"
+        assert result[0] == ["source_456"]
         assert result[1] == "Source Title"
 
 

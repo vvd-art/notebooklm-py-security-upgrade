@@ -82,10 +82,13 @@ class TestNotebookService:
     @pytest.mark.asyncio
     async def test_get_notebook(self, auth_tokens):
         mock_client = AsyncMock()
+        # get_notebook returns [nb_info, ...] where nb_info is the notebook data
         mock_client.get_notebook.return_value = [
-            "Test Notebook",
-            [["src_001", "Source 1"], ["src_002", "Source 2"]],
-            "nb_001",
+            [
+                "Test Notebook",
+                [["src_001", "Source 1"], ["src_002", "Source 2"]],
+                "nb_001",
+            ]
         ]
 
         service = NotebookService(mock_client)
