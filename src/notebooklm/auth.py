@@ -218,6 +218,84 @@ async def fetch_tokens(cookies: dict[str, str]) -> tuple[str, str]:
 BROWSER_PROFILE_DIR = Path.home() / ".notebooklm" / "browser_profile"
 
 
+async def download_urls_with_browser(
+    urls_and_paths: list[tuple[str, str]],
+    timeout: float = 60.0,
+) -> list[str]:
+    """Download multiple files using a single Playwright browser session.
+
+    This is more efficient than calling download_with_browser() multiple times
+    because it reuses the same browser context.
+
+    Args:
+        urls_and_paths: List of (url, output_path) tuples
+        timeout: Download timeout per file in seconds
+
+    Returns:
+        List of successfully downloaded output paths
+
+    Raises:
+        ImportError: If Playwright is not installed
+        ValueError: If authentication is required
+    """
+    if not urls_and_paths:
+        return []
+
+    try:
+        from playwright.async_api import async_playwright
+    except ImportError:
+        raise ImportError(
+            "Playwright is required for downloading media files.\n"
+            "Install with: pip install playwright && playwright install chromium"
+        )
+
+    downloaded = []
+
+    async with async_playwright() as p:
+        context = await p.chromium.launch_persistent_context(
+            user_data_dir=str(BROWSER_PROFILE_DIR),
+            headless=True,
+        )
+
+        try:
+            page = await context.new_page()
+
+            for url, output_path in urls_and_paths:
+                output_file = Path(output_path)
+                output_file.parent.mkdir(parents=True, exist_ok=True)
+
+                try:
+                    response = await page.goto(url, timeout=timeout * 1000)
+
+                    if "accounts.google.com" in page.url:
+                        raise ValueError(
+                            "Authentication required. Run 'notebooklm login' to re-authenticate."
+                        )
+
+                    if response and response.status == 200:
+                        content_type = response.headers.get("content-type", "")
+                        if "text/html" in content_type:
+                            raise ValueError(
+                                "Download failed: received HTML instead of media file."
+                            )
+
+                        content = await response.body()
+                        if content:
+                            output_file.write_bytes(content)
+                            downloaded.append(output_path)
+
+                except ValueError:
+                    raise
+                except Exception:
+                    # Skip failed downloads but continue with others
+                    continue
+
+        finally:
+            await context.close()
+
+    return downloaded
+
+
 async def download_with_browser(
     url: str,
     output_path: str,

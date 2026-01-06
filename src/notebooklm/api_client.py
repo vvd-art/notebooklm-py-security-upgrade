@@ -5,7 +5,7 @@ import httpx
 from typing import Any, Dict, Optional, Union
 from urllib.parse import urlencode
 
-from .auth import AuthTokens, download_with_browser
+from .auth import AuthTokens, download_with_browser, download_urls_with_browser
 from .rpc import (
     RPCMethod,
     StudioContentType,
@@ -518,6 +518,8 @@ class NotebookLMClient:
             if not isinstance(slides_list, list):
                 raise ValueError("Invalid slides list structure.")
 
+            # Collect all URLs and paths first
+            urls_and_paths = []
             for i, slide in enumerate(slides_list):
                 # slide structure: [["URL", W, H], "Desc", "Content"]
                 if (
@@ -530,9 +532,17 @@ class NotebookLMClient:
                     if isinstance(url, str) and url.startswith("http"):
                         filename = f"slide_{i + 1:03d}.png"
                         path = os.path.join(output_dir, filename)
+                        urls_and_paths.append((url, path))
 
-                        await self._download_url(url, path)
-                        downloaded_paths.append(path)
+            # Check if URLs need browser-based download
+            if urls_and_paths and self._needs_browser_download(urls_and_paths[0][0]):
+                # Batch download all slides in single browser session
+                downloaded_paths = await download_urls_with_browser(urls_and_paths)
+            else:
+                # Use httpx for non-Google URLs
+                for url, path in urls_and_paths:
+                    await self._download_url(url, path)
+                    downloaded_paths.append(path)
 
             return downloaded_paths
 
