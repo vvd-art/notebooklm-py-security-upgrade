@@ -9,7 +9,7 @@ Usage:
     python scripts/heal_golden_notebook.py
 
 Environment:
-    NOTEBOOKLM_GOLDEN_NOTEBOOK_ID - Required notebook ID
+    NOTEBOOKLM_GOLDEN_NOTEBOOK_ID - Optional, defaults to Google's demo notebook
 
 Requirements:
     - Valid auth at ~/.notebooklm/storage_state.json
@@ -27,6 +27,9 @@ from notebooklm import NotebookLMClient
 from notebooklm.auth import load_auth_from_storage, AuthTokens
 import httpx
 
+
+# Google's shared demo notebook - stable, pre-seeded with content
+DEFAULT_GOLDEN_NOTEBOOK_ID = "19bde485-a9c1-4809-8884-e872b2b67b44"
 
 # Required artifacts for full test coverage
 REQUIRED_ARTIFACTS = {
@@ -166,18 +169,14 @@ async def generate_missing_artifacts(
 
 async def heal():
     """Main healing function."""
-    notebook_id = os.environ.get("NOTEBOOKLM_GOLDEN_NOTEBOOK_ID")
-
-    if not notebook_id:
-        print("Error: NOTEBOOKLM_GOLDEN_NOTEBOOK_ID environment variable not set")
-        print("\nSet it to your golden notebook ID:")
-        print("  export NOTEBOOKLM_GOLDEN_NOTEBOOK_ID=<your-notebook-id>")
-        sys.exit(1)
+    notebook_id = os.environ.get("NOTEBOOKLM_GOLDEN_NOTEBOOK_ID", DEFAULT_GOLDEN_NOTEBOOK_ID)
 
     print("=" * 60)
     print("Golden Notebook Health Check")
     print("=" * 60)
     print(f"Notebook ID: {notebook_id}")
+    if notebook_id == DEFAULT_GOLDEN_NOTEBOOK_ID:
+        print("(Using Google's shared demo notebook)")
     print()
 
     try:

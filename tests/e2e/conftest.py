@@ -56,11 +56,13 @@ async def client(auth_tokens) -> AsyncGenerator[NotebookLMClient, None]:
 
 
 @pytest.fixture
-def test_notebook_id():
-    """Get notebook ID from env var or use default test notebook."""
-    return os.environ.get(
-        "NOTEBOOKLM_TEST_NOTEBOOK_ID", "834ddae2-5396-4d9a-8ed4-1ae01b674603"
-    )
+def test_notebook_id(golden_notebook_id):
+    """Get notebook ID from env var or use golden notebook.
+
+    Uses NOTEBOOKLM_TEST_NOTEBOOK_ID if set, otherwise falls back
+    to the golden notebook (Google's shared demo notebook).
+    """
+    return os.environ.get("NOTEBOOKLM_TEST_NOTEBOOK_ID", golden_notebook_id)
 
 
 @pytest.fixture
@@ -122,20 +124,21 @@ async def cleanup_artifacts(created_artifacts, test_notebook_id, auth_tokens):
 # =============================================================================
 
 
+# Google's shared demo notebook - stable, pre-seeded with content
+DEFAULT_GOLDEN_NOTEBOOK_ID = "19bde485-a9c1-4809-8884-e872b2b67b44"
+
+
 @pytest.fixture(scope="session")
 def golden_notebook_id():
-    """Get golden notebook ID from env var.
+    """Get golden notebook ID.
 
-    The golden notebook should be pre-seeded with:
-    - Sources: Web URL, YouTube video, pasted text
+    Defaults to Google's shared demo notebook which has pre-seeded:
+    - Sources: Various content types
     - Artifacts: Audio, Video, Quiz, Flashcards, Slide Deck, Mind Map
 
-    Set NOTEBOOKLM_GOLDEN_NOTEBOOK_ID env var before running tests.
+    Override with NOTEBOOKLM_GOLDEN_NOTEBOOK_ID env var if needed.
     """
-    nb_id = os.environ.get("NOTEBOOKLM_GOLDEN_NOTEBOOK_ID")
-    if not nb_id:
-        pytest.skip("Golden notebook not configured (set NOTEBOOKLM_GOLDEN_NOTEBOOK_ID)")
-    return nb_id
+    return os.environ.get("NOTEBOOKLM_GOLDEN_NOTEBOOK_ID", DEFAULT_GOLDEN_NOTEBOOK_ID)
 
 
 @pytest.fixture(scope="session")
