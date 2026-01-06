@@ -14,3 +14,4 @@ build/
 .notebooklm/
 captured_rpcs/
 .worktrees/
+.sisyphus/
