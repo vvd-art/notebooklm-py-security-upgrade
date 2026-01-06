@@ -1,10 +1,6 @@
 """NotebookLM Automation - RPC-based automation for Google NotebookLM.
 
-This package provides two client implementations:
-- NotebookLMClient (from .client): Modern namespaced API client (recommended)
-- LegacyNotebookLMClient (from .api_client): Original monolithic client
-
-Example usage with the new client:
+Example usage:
     from notebooklm import NotebookLMClient
 
     async with NotebookLMClient.from_storage() as client:
@@ -36,11 +32,8 @@ from .auth import (
     DEFAULT_STORAGE_PATH,
 )
 
-# New namespaced client (recommended)
+# Client
 from .client import NotebookLMClient
-
-# Legacy client (for backwards compatibility during migration)
-from .api_client import NotebookLMClient as LegacyNotebookLMClient
 
 # Type exports
 from .types import (
@@ -93,9 +86,8 @@ __all__ = [
     "MINIMUM_REQUIRED_COOKIES",
     "ALLOWED_COOKIE_DOMAINS",
     "DEFAULT_STORAGE_PATH",
-    # Clients
+    # Client
     "NotebookLMClient",
-    "LegacyNotebookLMClient",
     # Types
     "Notebook",
     "NotebookDescription",

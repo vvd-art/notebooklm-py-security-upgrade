@@ -2,7 +2,7 @@ import os
 import tempfile
 import pytest
 from .conftest import requires_auth
-from notebooklm.services import ArtifactService
+from notebooklm import Artifact
 
 
 @requires_auth
@@ -14,7 +14,7 @@ class TestDownloadAudio:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, "audio.mp4")
             try:
-                result = await client.download_audio(test_notebook_id, output_path)
+                result = await client.artifacts.download_audio(test_notebook_id, output_path)
                 assert result == output_path
                 assert os.path.exists(output_path)
                 assert os.path.getsize(output_path) > 0
@@ -33,7 +33,7 @@ class TestDownloadVideo:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, "video.mp4")
             try:
-                result = await client.download_video(test_notebook_id, output_path)
+                result = await client.artifacts.download_video(test_notebook_id, output_path)
                 assert result == output_path
                 assert os.path.exists(output_path)
                 assert os.path.getsize(output_path) > 0
@@ -52,7 +52,7 @@ class TestDownloadInfographic:
         with tempfile.TemporaryDirectory() as tmpdir:
             output_path = os.path.join(tmpdir, "infographic.png")
             try:
-                result = await client.download_infographic(
+                result = await client.artifacts.download_infographic(
                     test_notebook_id, output_path
                 )
                 assert result == output_path
@@ -72,7 +72,7 @@ class TestDownloadSlideDeck:
     async def test_download_slide_deck(self, client, test_notebook_id):
         with tempfile.TemporaryDirectory() as tmpdir:
             try:
-                result = await client.download_slide_deck(test_notebook_id, tmpdir)
+                result = await client.artifacts.download_slide_deck(test_notebook_id, tmpdir)
                 assert isinstance(result, list)
                 assert len(result) > 0
                 for slide_path in result:
@@ -89,14 +89,13 @@ class TestDownloadSlideDeck:
 class TestExportArtifact:
     @pytest.mark.asyncio
     async def test_export_artifact(self, client, test_notebook_id):
-        service = ArtifactService(client)
-        artifacts = await service.list(test_notebook_id)
+        artifacts = await client.artifacts.list(test_notebook_id)
         if not artifacts or len(artifacts) == 0:
             pytest.skip("No artifacts available to export")
 
         artifact_id = artifacts[0].id
         try:
-            result = await client.export_artifact(test_notebook_id, artifact_id)
+            result = await client.artifacts.export(test_notebook_id, artifact_id)
             assert result is not None or result is None
         except Exception:
             pytest.skip("Export not available for this artifact type")

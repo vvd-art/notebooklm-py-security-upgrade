@@ -376,6 +376,31 @@ class ArtifactsAPI:
 
         return self._parse_generation_result(result)
 
+    async def generate_study_guide(
+        self,
+        notebook_id: str,
+        source_ids: Optional[list[str]] = None,
+        language: str = "en",
+    ) -> GenerationStatus:
+        """Generate a study guide report.
+
+        Convenience method wrapping generate_report with STUDY_GUIDE format.
+
+        Args:
+            notebook_id: The notebook ID.
+            source_ids: Source IDs to include. If None, uses all sources.
+            language: Language code (default: "en").
+
+        Returns:
+            GenerationStatus with task_id for polling.
+        """
+        return await self.generate_report(
+            notebook_id,
+            report_format=ReportFormat.STUDY_GUIDE,
+            source_ids=source_ids,
+            language=language,
+        )
+
     async def generate_quiz(
         self,
         notebook_id: str,
@@ -1210,6 +1235,44 @@ class ArtifactsAPI:
         params = [None, artifact_id, content, title, export_type]
         return await self._core.rpc_call(
             RPCMethod.EXPORT_ARTIFACT,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+            allow_null=True,
+        )
+
+    # =========================================================================
+    # Audio Overview Operations
+    # =========================================================================
+
+    async def get_audio_overview(self, notebook_id: str) -> Any:
+        """Get audio overview details and status.
+
+        Args:
+            notebook_id: The notebook ID.
+
+        Returns:
+            Audio overview details or None if not available.
+        """
+        params = [notebook_id]
+        return await self._core.rpc_call(
+            RPCMethod.GET_AUDIO,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+            allow_null=True,
+        )
+
+    async def delete_audio_overview(self, notebook_id: str) -> Any:
+        """Delete the audio overview for a notebook.
+
+        Args:
+            notebook_id: The notebook ID.
+
+        Returns:
+            Deletion result.
+        """
+        params = [notebook_id]
+        return await self._core.rpc_call(
+            RPCMethod.DELETE_AUDIO,
             params,
             source_path=f"/notebook/{notebook_id}",
             allow_null=True,

@@ -87,12 +87,15 @@ class NotebooksAPI:
         await self._core.rpc_call(RPCMethod.DELETE_NOTEBOOK, params)
         return True
 
-    async def rename(self, notebook_id: str, new_title: str) -> None:
+    async def rename(self, notebook_id: str, new_title: str) -> Notebook:
         """Rename a notebook.
 
         Args:
             notebook_id: The notebook ID.
             new_title: The new title for the notebook.
+
+        Returns:
+            The renamed Notebook object (fetched after rename).
         """
         # Payload format discovered via browser traffic capture:
         # [notebook_id, [[null, null, null, [null, new_title]]]]
@@ -103,6 +106,29 @@ class NotebooksAPI:
             source_path="/",  # Home page context, not notebook page
             allow_null=True,
         )
+        # Fetch and return the updated notebook
+        return await self.get(notebook_id)
+
+    async def get_summary(self, notebook_id: str) -> str:
+        """Get raw summary text for a notebook.
+
+        For parsed summary with topics, use get_description() instead.
+
+        Args:
+            notebook_id: The notebook ID.
+
+        Returns:
+            Raw summary text string.
+        """
+        params = [notebook_id, [2]]
+        result = await self._core.rpc_call(
+            RPCMethod.SUMMARIZE,
+            params,
+            source_path=f"/notebook/{notebook_id}",
+        )
+        if result and isinstance(result, list) and len(result) > 0:
+            return str(result[0]) if result[0] else ""
+        return ""
 
     async def get_description(self, notebook_id: str) -> NotebookDescription:
         """Get AI-generated summary and suggested topics for a notebook.

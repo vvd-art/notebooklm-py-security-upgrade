@@ -12,7 +12,7 @@ from notebooklm.auth import (
     DEFAULT_STORAGE_PATH,
     AuthTokens,
 )
-from notebooklm.api_client import NotebookLMClient
+from notebooklm import NotebookLMClient
 
 
 def has_auth() -> bool:
@@ -76,7 +76,7 @@ async def cleanup_notebooks(created_notebooks, auth_tokens):
         async with NotebookLMClient(auth_tokens) as client:
             for nb_id in created_notebooks:
                 try:
-                    await client.delete_notebook(nb_id)
+                    await client.notebooks.delete(nb_id)
                 except Exception:
                     pass
 
@@ -94,7 +94,7 @@ async def cleanup_sources(created_sources, test_notebook_id, auth_tokens):
         async with NotebookLMClient(auth_tokens) as client:
             for src_id in created_sources:
                 try:
-                    await client.delete_source(test_notebook_id, src_id)
+                    await client.sources.delete(test_notebook_id, src_id)
                 except Exception:
                     pass
 
@@ -112,6 +112,6 @@ async def cleanup_artifacts(created_artifacts, test_notebook_id, auth_tokens):
         async with NotebookLMClient(auth_tokens) as client:
             for art_id in created_artifacts:
                 try:
-                    await client.delete_studio_content(test_notebook_id, art_id)
+                    await client.artifacts.delete(test_notebook_id, art_id)
                 except Exception:
                     pass
