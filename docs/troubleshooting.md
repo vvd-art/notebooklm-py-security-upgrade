@@ -38,12 +38,26 @@ Or re-run `notebooklm login`.
 
 ### RPC Errors
 
-#### "RPCError: No result found for RPC ID: R7cb6c"
+#### "RPCError: No result found for RPC ID: XyZ123"
 
-**Cause:** Artifact generation failed, often due to:
+**Cause:** The RPC method ID may have changed (Google updates these periodically), or:
 - Rate limiting from Google
 - Account quota exceeded
 - API restrictions
+
+**Diagnosis:**
+```bash
+# Enable debug mode to see what RPC IDs the server returns
+NOTEBOOKLM_DEBUG_RPC=1 notebooklm <your-command>
+```
+
+This will show output like:
+```
+DEBUG: Looking for RPC ID: Ljjv0c
+DEBUG: Found RPC IDs in response: ['NewId123']
+```
+
+If the IDs don't match, the method ID has changed. Report the new ID in a GitHub issue.
 
 **Workaround:**
 - Wait 5-10 minutes and retry

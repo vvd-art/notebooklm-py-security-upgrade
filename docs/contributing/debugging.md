@@ -167,9 +167,29 @@ Source IDs have different nesting requirements:
 
 ## RPC Tracing
 
-### Adding Debug Logging
+### Using Debug Mode
 
-Temporarily add logging to `_core.py`:
+The client has built-in RPC debugging via environment variable:
+
+```bash
+# Enable debug output for all RPC calls
+NOTEBOOKLM_DEBUG_RPC=1 notebooklm <command>
+```
+
+This shows:
+```
+DEBUG: Looking for RPC ID: wXbhsf
+DEBUG: Found RPC IDs in response: ['wXbhsf']
+```
+
+This is especially useful when:
+- A method suddenly stops working (ID may have changed)
+- You're implementing a new method and want to verify the ID
+- Debugging parameter structure issues
+
+### Adding Custom Logging
+
+For more detailed debugging, add logging to `_core.py`:
 
 ```python
 async def rpc_call(self, method, params, ...):

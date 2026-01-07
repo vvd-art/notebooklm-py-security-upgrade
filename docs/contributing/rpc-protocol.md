@@ -399,3 +399,33 @@ The following cookies are mandatory for authenticated requests:
 Both tokens are found in the `WIZ_global_data` object in the page HTML:
 - **CSRF Token**: Key `SNlM0e` (Used in POST body as `at`).
 - **Session ID**: Key `FdrFJe` (Used in URL as `f.sid`).
+
+---
+
+## 15. Debugging RPC Issues
+
+### Method ID Changes
+
+Google periodically changes RPC method IDs. When a method suddenly stops working:
+
+```bash
+# Enable debug mode to see what IDs the server returns
+NOTEBOOKLM_DEBUG_RPC=1 notebooklm <command>
+```
+
+Output shows:
+```
+DEBUG: Looking for RPC ID: Ljjv0c
+DEBUG: Found RPC IDs in response: ['NewId123']
+```
+
+If the IDs don't match, capture the new ID from browser DevTools and update `src/notebooklm/rpc/types.py`.
+
+### Enhanced Error Messages
+
+When an RPC ID mismatch is detected, the error includes the found IDs:
+```
+RPCError: No result found for RPC ID 'Ljjv0c'. Response contains IDs: ['NewId123']. The RPC method ID may have changed.
+```
+
+The `RPCError.found_ids` attribute contains the list of IDs found in the response for programmatic access.
