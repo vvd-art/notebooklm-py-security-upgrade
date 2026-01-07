@@ -370,15 +370,11 @@ await client.refresh_auth()
 
 ## Adding New RPC Methods
 
-1. **Capture traffic** using methodology above
-2. **Identify RPC ID** from `rpcids` URL parameter
-3. **Decode payload** and document parameter positions
-4. **Add to `rpc/types.py`**: `NEW_METHOD = "NEW_ID"`
-5. **Implement client method**:
-   ```python
-   async def new_method(self, notebook_id: str, **kwargs):
-       params = [...]  # Documented structure
-       return await self._rpc_call(RPCMethod.NEW_METHOD, params)
-   ```
-6. **Test** with unit test (mocked) and E2E test (real API)
-7. **Document** in `rpc-ui-reference.md`
+See **[Adding RPC Methods Guide](../../contributing/adding-rpc-methods.md)** for the complete step-by-step workflow.
+
+Quick summary:
+1. Capture traffic using methodology above
+2. Decode payload and identify parameter positions
+3. Add to `rpc/types.py` and implement in `_*.py`
+4. Test with unit, integration, and E2E tests
+5. Document in `rpc-ui-reference.md`
