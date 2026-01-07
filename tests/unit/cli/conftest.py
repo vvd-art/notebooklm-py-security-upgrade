@@ -102,7 +102,6 @@ class MultiPatcher:
         self.patches = [
             patch("notebooklm.cli.notebook.NotebookLMClient"),
             patch("notebooklm.cli.chat.NotebookLMClient"),
-            patch("notebooklm.cli.insights.NotebookLMClient"),
             patch("notebooklm.cli.session.NotebookLMClient"),
         ]
         self.mocks = []
@@ -122,9 +121,8 @@ def patch_main_cli_client():
     """Create a context manager that patches NotebookLMClient in CLI command modules.
 
     After refactoring, top-level commands are in separate modules:
-    - notebook.py: list, create, delete, rename, share, featured
+    - notebook.py: list, create, delete, rename, share, featured, summary, analytics
     - chat.py: ask, configure, history
-    - insights.py: summary, analytics, research
     - session.py: use
 
     Returns:

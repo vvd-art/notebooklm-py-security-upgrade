@@ -10,7 +10,7 @@ from click.testing import CliRunner
 from notebooklm.notebooklm_cli import cli
 from notebooklm.types import Notebook, NotebookDescription, SuggestedTopic
 
-from .conftest import create_mock_client, patch_main_cli_client
+from .conftest import create_mock_client, patch_main_cli_client, patch_client_for_module
 
 
 @pytest.fixture
@@ -510,13 +510,13 @@ class TestNotebookConfigure:
 
 
 # =============================================================================
-# NOTEBOOK RESEARCH TESTS
+# SOURCE ADD-RESEARCH TESTS (moved from insights to source)
 # =============================================================================
 
 
-class TestNotebookResearch:
-    def test_notebook_research_success(self, runner, mock_auth):
-        with patch_main_cli_client() as mock_client_cls:
+class TestSourceAddResearch:
+    def test_source_add_research_success(self, runner, mock_auth):
+        with patch_client_for_module("source") as mock_client_cls:
             mock_client = create_mock_client()
             mock_client.research.start = AsyncMock(return_value={"task_id": "task_123"})
             mock_client.research.poll = AsyncMock(
@@ -526,26 +526,26 @@ class TestNotebookResearch:
 
             with patch("notebooklm.cli.helpers.fetch_tokens", new_callable=AsyncMock) as mock_fetch:
                 mock_fetch.return_value = ("csrf", "session")
-                result = runner.invoke(cli, ["research", "AI research", "-n", "nb_123"])
+                result = runner.invoke(cli, ["source", "add-research", "AI research", "-n", "nb_123"])
 
             assert result.exit_code == 0
             assert "Found 1 sources" in result.output
 
-    def test_notebook_research_failed_to_start(self, runner, mock_auth):
-        with patch_main_cli_client() as mock_client_cls:
+    def test_source_add_research_failed_to_start(self, runner, mock_auth):
+        with patch_client_for_module("source") as mock_client_cls:
             mock_client = create_mock_client()
             mock_client.research.start = AsyncMock(return_value=None)
             mock_client_cls.return_value = mock_client
 
             with patch("notebooklm.cli.helpers.fetch_tokens", new_callable=AsyncMock) as mock_fetch:
                 mock_fetch.return_value = ("csrf", "session")
-                result = runner.invoke(cli, ["research", "AI research", "-n", "nb_123"])
+                result = runner.invoke(cli, ["source", "add-research", "AI research", "-n", "nb_123"])
 
             assert result.exit_code == 1
             assert "Research failed to start" in result.output
 
-    def test_notebook_research_with_import(self, runner, mock_auth):
-        with patch_main_cli_client() as mock_client_cls:
+    def test_source_add_research_with_import(self, runner, mock_auth):
+        with patch_client_for_module("source") as mock_client_cls:
             mock_client = create_mock_client()
             mock_client.research.start = AsyncMock(return_value={"task_id": "task_123"})
             mock_client.research.poll = AsyncMock(
@@ -556,7 +556,7 @@ class TestNotebookResearch:
 
             with patch("notebooklm.cli.helpers.fetch_tokens", new_callable=AsyncMock) as mock_fetch:
                 mock_fetch.return_value = ("csrf", "session")
-                result = runner.invoke(cli, ["research", "AI research", "-n", "nb_123", "--import-all"])
+                result = runner.invoke(cli, ["source", "add-research", "AI research", "-n", "nb_123", "--import-all"])
 
             assert result.exit_code == 0
             assert "Imported 1 sources" in result.output

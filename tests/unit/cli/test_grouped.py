@@ -35,6 +35,9 @@ class TestSectionedHelp:
         assert "rename" in result.output
         assert "share" in result.output
         assert "featured" in result.output
+        # summary and analytics were moved from Insights to Notebooks
+        assert "summary" in result.output
+        assert "analytics" in result.output
 
     def test_help_shows_chat_section(self, runner):
         """Verify Chat section appears with expected commands."""
@@ -44,15 +47,6 @@ class TestSectionedHelp:
         assert "ask" in result.output
         assert "configure" in result.output
         assert "history" in result.output
-
-    def test_help_shows_insights_section(self, runner):
-        """Verify Insights section appears with expected commands."""
-        result = runner.invoke(cli, ["--help"])
-        assert result.exit_code == 0
-        assert "Insights:" in result.output
-        assert "summary" in result.output
-        assert "analytics" in result.output
-        assert "research" in result.output
 
     def test_help_shows_command_groups_section(self, runner):
         """Verify Command Groups section appears with subcommand listings."""
@@ -98,9 +92,9 @@ class TestSectionedHelp:
         lines = result.output.split("\n")
         # Count section headers
         section_count = sum(1 for line in lines if line.strip().endswith(":") and
-                           any(s in line for s in ["Session", "Notebooks", "Chat", "Insights",
+                           any(s in line for s in ["Session", "Notebooks", "Chat",
                                                     "Command Groups", "Artifact Actions"]))
-        assert section_count >= 5  # At least 5 of our sections should appear
+        assert section_count >= 4  # At least 4 of our sections should appear (no Insights anymore)
 
 
 class TestSectionedHelpOrder:
@@ -113,11 +107,10 @@ class TestSectionedHelpOrder:
 
         output = result.output
 
-        # Find positions of key sections
+        # Find positions of key sections (Insights removed, summary/analytics moved to Notebooks)
         session_pos = output.find("Session:")
         notebooks_pos = output.find("Notebooks:")
         chat_pos = output.find("Chat:")
-        insights_pos = output.find("Insights:")
         groups_pos = output.find("Command Groups")
         actions_pos = output.find("Artifact Actions")
 
@@ -125,9 +118,8 @@ class TestSectionedHelpOrder:
         assert session_pos > 0
         assert notebooks_pos > 0
         assert chat_pos > 0
-        assert insights_pos > 0
         assert groups_pos > 0
         assert actions_pos > 0
 
         # Verify order
-        assert session_pos < notebooks_pos < chat_pos < insights_pos < groups_pos < actions_pos
+        assert session_pos < notebooks_pos < chat_pos < groups_pos < actions_pos

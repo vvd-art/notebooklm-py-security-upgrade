@@ -3,15 +3,14 @@
 This package provides the command-line interface for NotebookLM automation.
 
 Command groups are organized into separate modules:
-- source.py: Source management commands
+- source.py: Source management commands (includes add-research)
 - artifact.py: Artifact management commands
 - generate.py: Content generation commands
 - download.py: Download commands
 - note.py: Note management commands
 - session.py: Session and context commands (login, use, status, clear)
-- notebook.py: Notebook management commands (list, create, delete, rename, share, featured)
+- notebook.py: Notebook management commands (list, create, delete, rename, share, featured, summary, analytics)
 - chat.py: Chat commands (ask, configure, history)
-- insights.py: Insights commands (summary, analytics, research)
 
 Re-exports from helpers for backward compatibility with tests.
 """
@@ -27,7 +26,6 @@ from .note import note
 from .session import register_session_commands
 from .notebook import register_notebook_commands
 from .chat import register_chat_commands
-from .insights import register_insights_commands
 
 from .helpers import (
     # Console
@@ -87,7 +85,6 @@ __all__ = [
     "register_session_commands",
     "register_notebook_commands",
     "register_chat_commands",
-    "register_insights_commands",
     # Console
     "console",
     # Async

@@ -1,12 +1,14 @@
 """Notebook management CLI commands.
 
 Commands:
-    list      List all notebooks
-    create    Create a new notebook
-    delete    Delete a notebook
-    rename    Rename a notebook
-    share     Configure notebook sharing
-    featured  List featured/public notebooks
+    list       List all notebooks
+    create     Create a new notebook
+    delete     Delete a notebook
+    rename     Rename a notebook
+    share      Configure notebook sharing
+    featured   List featured/public notebooks
+    summary    Get notebook summary with AI-generated insights
+    analytics  Get notebook analytics
 """
 
 import click
@@ -205,5 +207,65 @@ def register_notebook_commands(cli):
                         )
 
                 console.print(table)
+
+        return _run()
+
+    @cli.command("summary")
+    @click.option(
+        "-n",
+        "--notebook",
+        "notebook_id",
+        default=None,
+        help="Notebook ID (uses current if not set)",
+    )
+    @click.option("--topics", is_flag=True, help="Include suggested topics")
+    @with_client
+    def summary_cmd(ctx, notebook_id, topics, client_auth):
+        """Get notebook summary with AI-generated insights.
+
+        \b
+        Examples:
+          notebooklm summary              # Summary only
+          notebooklm summary --topics     # With suggested topics
+        """
+        notebook_id = require_notebook(notebook_id)
+
+        async def _run():
+            async with NotebookLMClient(client_auth) as client:
+                description = await client.notebooks.get_description(notebook_id)
+                if description and description.summary:
+                    console.print("[bold cyan]Summary:[/bold cyan]")
+                    console.print(description.summary)
+
+                    if topics and description.suggested_topics:
+                        console.print("\n[bold cyan]Suggested Topics:[/bold cyan]")
+                        for i, topic in enumerate(description.suggested_topics, 1):
+                            console.print(f"  {i}. {topic.question}")
+                else:
+                    console.print("[yellow]No summary available[/yellow]")
+
+        return _run()
+
+    @cli.command("analytics")
+    @click.option(
+        "-n",
+        "--notebook",
+        "notebook_id",
+        default=None,
+        help="Notebook ID (uses current if not set)",
+    )
+    @with_client
+    def analytics_cmd(ctx, notebook_id, client_auth):
+        """Get notebook analytics."""
+        notebook_id = require_notebook(notebook_id)
+
+        async def _run():
+            async with NotebookLMClient(client_auth) as client:
+                analytics = await client.notebooks.get_analytics(notebook_id)
+                if analytics:
+                    console.print("[bold cyan]Analytics:[/bold cyan]")
+                    console.print(analytics)
+                else:
+                    console.print("[yellow]No analytics available[/yellow]")
 
         return _run()

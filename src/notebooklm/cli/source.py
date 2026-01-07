@@ -1,13 +1,14 @@
 """Source management CLI commands.
 
 Commands:
-    list      List sources in a notebook
-    add       Add a source (url, text, file, youtube)
-    get       Get source details
-    delete    Delete a source
-    rename    Rename a source
-    refresh   Refresh a URL/Drive source
-    add-drive Add a Google Drive document
+    list         List sources in a notebook
+    add          Add a source (url, text, file, youtube)
+    get          Get source details
+    delete       Delete a source
+    rename       Rename a source
+    refresh      Refresh a URL/Drive source
+    add-drive    Add a Google Drive document
+    add-research Search web/drive and add sources from results
 """
 
 from pathlib import Path
@@ -352,5 +353,83 @@ def source_add_drive(ctx, file_id, title, notebook_id, mime_type, client_auth):
 
             console.print(f"[green]Added Drive source:[/green] {src.id}")
             console.print(f"[bold]Title:[/bold] {src.title}")
+
+    return _run()
+
+
+@source.command("add-research")
+@click.argument("query")
+@click.option(
+    "-n",
+    "--notebook",
+    "notebook_id",
+    default=None,
+    help="Notebook ID (uses current if not set)",
+)
+@click.option(
+    "--from",
+    "search_source",
+    type=click.Choice(["web", "drive"]),
+    default="web",
+    help="Search source (default: web)",
+)
+@click.option(
+    "--mode",
+    type=click.Choice(["fast", "deep"]),
+    default="fast",
+    help="Search mode (default: fast)",
+)
+@click.option("--import-all", is_flag=True, help="Import all found sources")
+@with_client
+def source_add_research(ctx, query, notebook_id, search_source, mode, import_all, client_auth):
+    """Search web or drive and add sources from results.
+
+    \b
+    Examples:
+      source add-research "machine learning"              # Search web
+      source add-research "project docs" --from drive     # Search Google Drive
+      source add-research "AI papers" --mode deep         # Deep search
+      source add-research "tutorials" --import-all        # Auto-import all results
+    """
+    import time
+
+    nb_id = require_notebook(notebook_id)
+
+    async def _run():
+        async with NotebookLMClient(client_auth) as client:
+            console.print(
+                f"[yellow]Starting {mode} research on {search_source}...[/yellow]"
+            )
+            result = await client.research.start(nb_id, query, search_source, mode)
+            if not result:
+                console.print("[red]Research failed to start[/red]")
+                raise SystemExit(1)
+
+            task_id = result["task_id"]
+            console.print(f"[dim]Task ID: {task_id}[/dim]")
+
+            status = None
+            for _ in range(60):
+                status = await client.research.poll(nb_id)
+                if status.get("status") == "completed":
+                    break
+                elif status.get("status") == "no_research":
+                    console.print("[red]Research failed to start[/red]")
+                    raise SystemExit(1)
+                time.sleep(5)
+            else:
+                status = {"status": "timeout"}
+
+            if status.get("status") == "completed":
+                sources = status.get("sources", [])
+                console.print(f"\n[green]Found {len(sources)} sources[/green]")
+
+                if import_all and sources and task_id:
+                    imported = await client.research.import_sources(
+                        nb_id, task_id, sources
+                    )
+                    console.print(f"[green]Imported {len(imported)} sources[/green]")
+            else:
+                console.print(f"[yellow]Status: {status.get('status', 'unknown')}[/yellow]")
 
     return _run()

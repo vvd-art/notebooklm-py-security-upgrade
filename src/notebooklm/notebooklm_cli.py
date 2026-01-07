@@ -40,7 +40,6 @@ from .cli import (
     register_session_commands,
     register_notebook_commands,
     register_chat_commands,
-    register_insights_commands,
 )
 from .cli.grouped import SectionedGroup
 
@@ -93,7 +92,6 @@ def cli(ctx, storage):
 register_session_commands(cli)
 register_notebook_commands(cli)
 register_chat_commands(cli)
-register_insights_commands(cli)
 
 # Register command groups (subcommand style)
 cli.add_command(source)
