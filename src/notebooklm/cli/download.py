@@ -22,7 +22,7 @@ from .helpers import (
     require_notebook,
     handle_error,
 )
-from .download_helpers import select_artifact, artifact_title_to_filename
+from .download_helpers import select_artifact, artifact_title_to_filename, ArtifactDict
 
 
 @click.group()
@@ -134,11 +134,11 @@ async def _download_artifacts_generic(
                 }
 
             # Convert to dict format for selection logic
-            type_artifacts = [
+            type_artifacts: list[ArtifactDict] = [
                 {
                     "id": a.id,
                     "title": a.title,
-                    "created_at": a.created_at.timestamp() if a.created_at else 0,
+                    "created_at": int(a.created_at.timestamp()) if a.created_at else 0,
                 }
                 for a in completed_artifacts
             ]
@@ -192,7 +192,7 @@ async def _download_artifacts_generic(
                                 "id": a["id"],
                                 "title": a["title"],
                                 "filename": artifact_title_to_filename(
-                                    a["title"],
+                                    str(a["title"]),
                                     file_extension if not is_directory_type else "",
                                     set(),
                                 ),
@@ -204,7 +204,7 @@ async def _download_artifacts_generic(
                 output_dir.mkdir(parents=True, exist_ok=True)
 
                 results = []
-                existing_names = set()
+                existing_names: set[str] = set()
                 total = len(type_artifacts)
 
                 for i, artifact in enumerate(type_artifacts, 1):
@@ -216,7 +216,7 @@ async def _download_artifacts_generic(
 
                     # Generate safe name
                     item_name = artifact_title_to_filename(
-                        artifact["title"],
+                        str(artifact["title"]),
                         file_extension if not is_directory_type else "",
                         existing_names,
                     )
@@ -225,13 +225,13 @@ async def _download_artifacts_generic(
 
                     # Resolve conflicts
                     resolved_path, skip_info = _resolve_conflict(item_path)
-                    if skip_info:
+                    if skip_info or resolved_path is None:
                         results.append(
                             {
                                 "id": artifact["id"],
                                 "title": artifact["title"],
                                 "filename": item_name,
-                                **skip_info,
+                                **(skip_info or {"status": "skipped", "reason": "conflict resolution failed"}),
                             }
                         )
                         continue
@@ -248,7 +248,7 @@ async def _download_artifacts_generic(
 
                         # Download using dispatch
                         await download_fn(
-                            nb_id, str(item_path), artifact_id=artifact["id"]
+                            nb_id, str(item_path), artifact_id=str(artifact["id"])
                         )
 
                         results.append(
@@ -293,7 +293,7 @@ async def _download_artifacts_generic(
             # Determine output path
             if not output_path:
                 safe_name = artifact_title_to_filename(
-                    selected["title"],
+                    str(selected["title"]),
                     file_extension if not is_directory_type else "",
                     set(),
                 )
@@ -316,7 +316,7 @@ async def _download_artifacts_generic(
 
             # Resolve conflicts
             resolved_path, skip_error = _resolve_conflict(final_path)
-            if skip_error:
+            if skip_error or resolved_path is None:
                 entity_type = "Directory" if is_directory_type else "File"
                 return {
                     "error": f"{entity_type} exists: {final_path}",
@@ -334,7 +334,7 @@ async def _download_artifacts_generic(
 
                 # Download using dispatch
                 result_path = await download_fn(
-                    nb_id, str(final_path), artifact_id=selected["id"]
+                    nb_id, str(final_path), artifact_id=str(selected["id"])
                 )
 
                 return {
