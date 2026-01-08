@@ -197,6 +197,99 @@ class TestLoadAuthFromStorage:
             load_auth_from_storage(storage_file)
 
 
+class TestLoadAuthFromEnvVar:
+    """Test NOTEBOOKLM_AUTH_JSON env var support."""
+
+    def test_loads_from_env_var(self, tmp_path, monkeypatch):
+        """Test loading auth from NOTEBOOKLM_AUTH_JSON env var."""
+        storage_state = {
+            "cookies": [
+                {"name": "SID", "value": "sid_from_env", "domain": ".google.com"},
+                {"name": "HSID", "value": "hsid_from_env", "domain": ".google.com"},
+            ]
+        }
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", json.dumps(storage_state))
+
+        cookies = load_auth_from_storage()
+
+        assert cookies["SID"] == "sid_from_env"
+        assert cookies["HSID"] == "hsid_from_env"
+
+    def test_explicit_path_takes_precedence_over_env_var(self, tmp_path, monkeypatch):
+        """Test that explicit path argument overrides NOTEBOOKLM_AUTH_JSON."""
+        # Set env var
+        env_storage = {"cookies": [{"name": "SID", "value": "from_env", "domain": ".google.com"}]}
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", json.dumps(env_storage))
+
+        # Create file with different value
+        file_storage = {"cookies": [{"name": "SID", "value": "from_file", "domain": ".google.com"}]}
+        storage_file = tmp_path / "storage_state.json"
+        storage_file.write_text(json.dumps(file_storage))
+
+        # Explicit path should win
+        cookies = load_auth_from_storage(storage_file)
+        assert cookies["SID"] == "from_file"
+
+    def test_env_var_invalid_json_raises_value_error(self, monkeypatch):
+        """Test that invalid JSON in env var raises ValueError."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", "not valid json")
+
+        with pytest.raises(ValueError, match="Invalid JSON in NOTEBOOKLM_AUTH_JSON"):
+            load_auth_from_storage()
+
+    def test_env_var_missing_cookies_raises_value_error(self, monkeypatch):
+        """Test that missing required cookies raises ValueError."""
+        storage_state = {"cookies": []}  # No SID cookie
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", json.dumps(storage_state))
+
+        with pytest.raises(ValueError, match="Missing required cookies"):
+            load_auth_from_storage()
+
+    def test_env_var_takes_precedence_over_file(self, tmp_path, monkeypatch):
+        """Test that NOTEBOOKLM_AUTH_JSON takes precedence over default file."""
+        # Set env var
+        env_storage = {"cookies": [{"name": "SID", "value": "from_env", "domain": ".google.com"}]}
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", json.dumps(env_storage))
+
+        # Set NOTEBOOKLM_HOME to tmp_path and create a file there
+        monkeypatch.setenv("NOTEBOOKLM_HOME", str(tmp_path))
+        file_storage = {"cookies": [{"name": "SID", "value": "from_home_file", "domain": ".google.com"}]}
+        storage_file = tmp_path / "storage_state.json"
+        storage_file.write_text(json.dumps(file_storage))
+
+        # Env var should win over file (no explicit path)
+        cookies = load_auth_from_storage()
+        assert cookies["SID"] == "from_env"
+
+    def test_env_var_empty_string_raises_value_error(self, monkeypatch):
+        """Test that empty string NOTEBOOKLM_AUTH_JSON raises ValueError."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", "")
+
+        with pytest.raises(ValueError, match="NOTEBOOKLM_AUTH_JSON environment variable is set but empty"):
+            load_auth_from_storage()
+
+    def test_env_var_whitespace_only_raises_value_error(self, monkeypatch):
+        """Test that whitespace-only NOTEBOOKLM_AUTH_JSON raises ValueError."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", "   \n\t  ")
+
+        with pytest.raises(ValueError, match="NOTEBOOKLM_AUTH_JSON environment variable is set but empty"):
+            load_auth_from_storage()
+
+    def test_env_var_missing_cookies_key_raises_value_error(self, monkeypatch):
+        """Test that NOTEBOOKLM_AUTH_JSON without 'cookies' key raises ValueError."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", '{"origins": []}')
+
+        with pytest.raises(ValueError, match="must contain valid Playwright storage state with a 'cookies' key"):
+            load_auth_from_storage()
+
+    def test_env_var_non_dict_raises_value_error(self, monkeypatch):
+        """Test that non-dict NOTEBOOKLM_AUTH_JSON raises ValueError."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", '["not", "a", "dict"]')
+
+        with pytest.raises(ValueError, match="must contain valid Playwright storage state with a 'cookies' key"):
+            load_auth_from_storage()
+
+
 class TestExtractCSRFRedirect:
     """Test CSRF extraction redirect detection."""
 

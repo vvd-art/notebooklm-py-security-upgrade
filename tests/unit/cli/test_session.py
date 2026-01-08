@@ -35,8 +35,8 @@ def mock_auth():
 def mock_context_file(tmp_path):
     """Provide a temporary context file for testing context commands."""
     context_file = tmp_path / "context.json"
-    with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
-        with patch("notebooklm.cli.session.CONTEXT_FILE", context_file):
+    with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
+        with patch("notebooklm.cli.session.get_context_path", return_value=context_file):
             yield context_file
 
 
@@ -70,6 +70,15 @@ class TestLoginCommand:
 
         assert result.exit_code == 0
         assert "storage_state.json" in result.output or "storage" in result.output.lower()
+
+    def test_login_blocked_when_notebooklm_auth_json_set(self, runner, monkeypatch):
+        """Test login command blocks when NOTEBOOKLM_AUTH_JSON is set."""
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON", '{"cookies":[]}')
+
+        result = runner.invoke(cli, ["login"])
+
+        assert result.exit_code == 1
+        assert "Cannot run 'login' when NOTEBOOKLM_AUTH_JSON is set" in result.output
 
 
 # =============================================================================

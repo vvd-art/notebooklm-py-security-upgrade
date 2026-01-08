@@ -256,20 +256,20 @@ class TestJsonErrorResponse:
 
 class TestContextManagement:
     def test_get_current_notebook_no_file(self, tmp_path):
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", tmp_path / "nonexistent.json"):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=tmp_path / "nonexistent.json"):
             result = get_current_notebook()
             assert result is None
 
     def test_set_and_get_current_notebook(self, tmp_path):
         context_file = tmp_path / "context.json"
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             set_current_notebook("nb_test123", title="Test Notebook")
             result = get_current_notebook()
             assert result == "nb_test123"
 
     def test_set_notebook_with_all_fields(self, tmp_path):
         context_file = tmp_path / "context.json"
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             set_current_notebook(
                 "nb_test123",
                 title="Test Notebook",
@@ -285,18 +285,18 @@ class TestContextManagement:
     def test_clear_context(self, tmp_path):
         context_file = tmp_path / "context.json"
         context_file.write_text('{"notebook_id": "test"}')
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             clear_context()
             assert not context_file.exists()
 
     def test_clear_context_no_file(self, tmp_path):
         """clear_context should not raise if file doesn't exist"""
         context_file = tmp_path / "nonexistent.json"
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             clear_context()  # Should not raise
 
     def test_get_current_conversation_no_file(self, tmp_path):
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", tmp_path / "nonexistent.json"):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=tmp_path / "nonexistent.json"):
             result = get_current_conversation()
             assert result is None
 
@@ -304,7 +304,7 @@ class TestContextManagement:
         context_file = tmp_path / "context.json"
         context_file.parent.mkdir(parents=True, exist_ok=True)
         context_file.write_text('{"notebook_id": "nb_123"}')
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             set_current_conversation("conv_456")
             result = get_current_conversation()
             assert result == "conv_456"
@@ -312,7 +312,7 @@ class TestContextManagement:
     def test_clear_conversation(self, tmp_path):
         context_file = tmp_path / "context.json"
         context_file.write_text('{"notebook_id": "nb_123", "conversation_id": "conv_456"}')
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             set_current_conversation(None)
             result = get_current_conversation()
             assert result is None
@@ -320,26 +320,26 @@ class TestContextManagement:
     def test_get_notebook_invalid_json(self, tmp_path):
         context_file = tmp_path / "context.json"
         context_file.write_text("invalid json")
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             result = get_current_notebook()
             assert result is None
 
 
 class TestRequireNotebook:
     def test_returns_provided_notebook_id(self, tmp_path):
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", tmp_path / "context.json"):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=tmp_path / "context.json"):
             result = require_notebook("nb_provided")
             assert result == "nb_provided"
 
     def test_returns_context_notebook_when_none_provided(self, tmp_path):
         context_file = tmp_path / "context.json"
         context_file.write_text('{"notebook_id": "nb_context"}')
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
             result = require_notebook(None)
             assert result == "nb_context"
 
     def test_raises_system_exit_when_no_notebook(self, tmp_path):
-        with patch("notebooklm.cli.helpers.CONTEXT_FILE", tmp_path / "nonexistent.json"):
+        with patch("notebooklm.cli.helpers.get_context_path", return_value=tmp_path / "nonexistent.json"):
             with patch("notebooklm.cli.helpers.console") as mock_console:
                 with pytest.raises(SystemExit) as exc_info:
                     require_notebook(None)

@@ -22,14 +22,15 @@ from ..auth import (
     load_auth_from_storage,
     fetch_tokens,
 )
+from ..paths import get_context_path, get_browser_profile_dir
 
 console = Console()
 
-# Context file for storing current notebook
-CONTEXT_FILE = Path.home() / ".notebooklm" / "context.json"
-
-# Persistent browser profile directory
-BROWSER_PROFILE_DIR = Path.home() / ".notebooklm" / "browser_profile"
+# Backward-compatible module-level constants (for tests that patch these)
+# Note: Prefer using get_context_path() and get_browser_profile_dir() for dynamic resolution
+# These are evaluated once at import time, so NOTEBOOKLM_HOME changes after import won't affect them
+CONTEXT_FILE = get_context_path()
+BROWSER_PROFILE_DIR = get_browser_profile_dir()
 
 # Artifact type display mapping
 ARTIFACT_TYPE_DISPLAY = {
@@ -110,10 +111,11 @@ def get_auth_tokens(ctx) -> AuthTokens:
 
 def get_current_notebook() -> str | None:
     """Get the current notebook ID from context."""
-    if not CONTEXT_FILE.exists():
+    context_file = get_context_path()
+    if not context_file.exists():
         return None
     try:
-        data = json.loads(CONTEXT_FILE.read_text())
+        data = json.loads(context_file.read_text())
         return data.get("notebook_id")
     except (json.JSONDecodeError, IOError):
         return None
@@ -126,7 +128,8 @@ def set_current_notebook(
     created_at: str | None = None,
 ):
     """Set the current notebook context."""
-    CONTEXT_FILE.parent.mkdir(parents=True, exist_ok=True)
+    context_file = get_context_path()
+    context_file.parent.mkdir(parents=True, exist_ok=True)
     data: dict[str, str | bool] = {"notebook_id": notebook_id}
     if title:
         data["title"] = title
@@ -134,21 +137,23 @@ def set_current_notebook(
         data["is_owner"] = is_owner
     if created_at:
         data["created_at"] = created_at
-    CONTEXT_FILE.write_text(json.dumps(data, indent=2))
+    context_file.write_text(json.dumps(data, indent=2))
 
 
 def clear_context():
     """Clear the current context."""
-    if CONTEXT_FILE.exists():
-        CONTEXT_FILE.unlink()
+    context_file = get_context_path()
+    if context_file.exists():
+        context_file.unlink()
 
 
 def get_current_conversation() -> str | None:
     """Get the current conversation ID from context."""
-    if not CONTEXT_FILE.exists():
+    context_file = get_context_path()
+    if not context_file.exists():
         return None
     try:
-        data = json.loads(CONTEXT_FILE.read_text())
+        data = json.loads(context_file.read_text())
         return data.get("conversation_id")
     except (json.JSONDecodeError, IOError):
         return None
@@ -156,15 +161,16 @@ def get_current_conversation() -> str | None:
 
 def set_current_conversation(conversation_id: str | None):
     """Set or clear the current conversation ID in context."""
-    if not CONTEXT_FILE.exists():
+    context_file = get_context_path()
+    if not context_file.exists():
         return
     try:
-        data = json.loads(CONTEXT_FILE.read_text())
+        data = json.loads(context_file.read_text())
         if conversation_id:
             data["conversation_id"] = conversation_id
         elif "conversation_id" in data:
             del data["conversation_id"]
-        CONTEXT_FILE.write_text(json.dumps(data, indent=2))
+        context_file.write_text(json.dumps(data, indent=2))
     except (json.JSONDecodeError, IOError):
         pass
 

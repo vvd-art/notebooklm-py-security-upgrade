@@ -3,6 +3,7 @@
 import json
 import pytest
 from datetime import datetime
+from pathlib import Path
 from unittest.mock import AsyncMock, patch, MagicMock
 
 from click.testing import CliRunner
@@ -169,7 +170,7 @@ class TestNotebookDelete:
             mock_client.notebooks.delete = AsyncMock(return_value=True)
             mock_client_cls.return_value = mock_client
 
-            with patch("notebooklm.cli.helpers.CONTEXT_FILE", context_file):
+            with patch("notebooklm.cli.helpers.get_context_path", return_value=context_file):
                 with patch("notebooklm.cli.notebook.get_current_notebook", return_value="nb_to_delete"):
                     with patch("notebooklm.cli.notebook.clear_context") as mock_clear:
                         with patch("notebooklm.cli.helpers.fetch_tokens", new_callable=AsyncMock) as mock_fetch:
@@ -428,8 +429,7 @@ class TestNotebookAsk:
             mock_client.chat.get_history = AsyncMock(return_value=None)
             mock_client_cls.return_value = mock_client
 
-            with patch("notebooklm.cli.helpers.CONTEXT_FILE") as mock_ctx_file:
-                mock_ctx_file.exists.return_value = False
+            with patch("notebooklm.cli.helpers.get_context_path", return_value=Path("/nonexistent/context.json")):
                 with patch("notebooklm.cli.helpers.fetch_tokens", new_callable=AsyncMock) as mock_fetch:
                     mock_fetch.return_value = ("csrf", "session")
                     result = runner.invoke(cli, ["ask", "-n", "nb_123", "What is this?"])

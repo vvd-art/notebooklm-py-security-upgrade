@@ -28,12 +28,15 @@ Security Notes:
 """
 
 import json
+import os
 import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Optional
 
 import httpx
+
+from .paths import get_storage_path
 
 # Minimum required cookies (must have at least SID for basic auth)
 MINIMUM_REQUIRED_COOKIES = {"SID"}
@@ -46,8 +49,9 @@ ALLOWED_COOKIE_DOMAINS = {
     ".googleusercontent.com",
 }
 
-# Default path for Playwright storage state (shared with notebooklm-tools skill)
-DEFAULT_STORAGE_PATH = Path.home() / ".notebooklm" / "storage_state.json"
+# Default path for Playwright storage state
+# Note: Use get_storage_path() for dynamic resolution with NOTEBOOKLM_HOME support
+DEFAULT_STORAGE_PATH = get_storage_path()
 
 
 @dataclass
@@ -202,23 +206,63 @@ def extract_session_id_from_html(html: str, final_url: str = "") -> str:
     return match.group(1)
 
 
-def load_auth_from_storage(path: Optional[Path] = None) -> dict[str, str]:
-    """Load Google cookies from Playwright storage state file.
+def _load_storage_state(path: Optional[Path] = None) -> dict[str, Any]:
+    """Load Playwright storage state from file or environment variable.
 
-    Reads the JSON storage state file created by `notebooklm login` and extracts
-    the required Google authentication cookies.
+    This is a shared helper used by load_auth_from_storage() and load_httpx_cookies()
+    to avoid code duplication.
+
+    Precedence:
+    1. Explicit path argument (from --storage CLI flag)
+    2. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
+    3. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
 
     Args:
-        path: Path to storage_state.json. If None, uses ~/.notebooklm/storage_state.json.
+        path: Path to storage_state.json. If provided, takes precedence over env vars.
 
     Returns:
-        Dict mapping cookie names to values (e.g., {"SID": "...", "HSID": "..."}).
+        Parsed storage state dict.
 
     Raises:
-        FileNotFoundError: If storage file doesn't exist.
-        ValueError: If required cookies (SID) are missing.
+        FileNotFoundError: If storage file doesn't exist (when using file-based auth).
+        ValueError: If JSON is malformed or empty.
     """
-    storage_path = path or DEFAULT_STORAGE_PATH
+    # 1. Explicit path takes precedence (from --storage CLI flag)
+    if path:
+        if not path.exists():
+            raise FileNotFoundError(
+                f"Storage file not found: {path}\n"
+                f"Run 'notebooklm login' to authenticate first."
+            )
+        return json.loads(path.read_text())
+
+    # 2. Check for inline JSON env var (CI-friendly, no file writes needed)
+    # Note: Use 'in' check instead of walrus to catch empty string case
+    if "NOTEBOOKLM_AUTH_JSON" in os.environ:
+        auth_json = os.environ["NOTEBOOKLM_AUTH_JSON"].strip()
+        if not auth_json:
+            raise ValueError(
+                "NOTEBOOKLM_AUTH_JSON environment variable is set but empty.\n"
+                "Provide valid Playwright storage state JSON or unset the variable."
+            )
+        try:
+            storage_state = json.loads(auth_json)
+        except json.JSONDecodeError as e:
+            raise ValueError(
+                f"Invalid JSON in NOTEBOOKLM_AUTH_JSON environment variable: {e}\n"
+                f"Ensure the value is valid Playwright storage state JSON."
+            )
+        # Validate structure
+        if not isinstance(storage_state, dict) or "cookies" not in storage_state:
+            raise ValueError(
+                "NOTEBOOKLM_AUTH_JSON must contain valid Playwright storage state "
+                "with a 'cookies' key.\n"
+                "Expected format: {\"cookies\": [{\"name\": \"SID\", \"value\": \"...\", ...}]}"
+            )
+        return storage_state
+
+    # 3. Fall back to file (respects NOTEBOOKLM_HOME)
+    storage_path = get_storage_path()
 
     if not storage_path.exists():
         raise FileNotFoundError(
@@ -226,7 +270,36 @@ def load_auth_from_storage(path: Optional[Path] = None) -> dict[str, str]:
             f"Run 'notebooklm login' to authenticate first."
         )
 
-    storage_state = json.loads(storage_path.read_text())
+    return json.loads(storage_path.read_text())
+
+
+def load_auth_from_storage(path: Optional[Path] = None) -> dict[str, str]:
+    """Load Google cookies from storage.
+
+    Loads authentication cookies with the following precedence:
+    1. Explicit path argument (from --storage CLI flag)
+    2. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
+    3. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
+
+    Args:
+        path: Path to storage_state.json. If provided, takes precedence over env vars.
+
+    Returns:
+        Dict mapping cookie names to values (e.g., {"SID": "...", "HSID": "..."}).
+
+    Raises:
+        FileNotFoundError: If storage file doesn't exist (when using file-based auth).
+        ValueError: If required cookies (SID) are missing or JSON is malformed.
+
+    Example:
+        # CLI flag takes precedence
+        cookies = load_auth_from_storage(Path("/custom/path.json"))
+
+        # Or use NOTEBOOKLM_AUTH_JSON for CI/CD (no file writes needed)
+        # export NOTEBOOKLM_AUTH_JSON='{"cookies":[...]}'
+        cookies = load_auth_from_storage()
+    """
+    storage_state = _load_storage_state(path)
     return extract_cookies_from_storage(storage_state)
 
 
@@ -270,25 +343,22 @@ def load_httpx_cookies(path: Optional[Path] = None) -> "httpx.Cookies":
     returns a proper httpx.Cookies object with domain information preserved.
     This is required for downloads that follow redirects across Google domains.
 
+    Supports the same precedence as load_auth_from_storage():
+    1. Explicit path argument (from --storage CLI flag)
+    2. NOTEBOOKLM_AUTH_JSON environment variable
+    3. File at $NOTEBOOKLM_HOME/storage_state.json
+
     Args:
-        path: Path to storage_state.json. If None, uses ~/.notebooklm/storage_state.json.
+        path: Path to storage_state.json. If provided, takes precedence over env vars.
 
     Returns:
         httpx.Cookies object with all Google cookies.
 
     Raises:
-        FileNotFoundError: If storage file doesn't exist.
-        ValueError: If required cookies are missing.
+        FileNotFoundError: If storage file doesn't exist (when using file-based auth).
+        ValueError: If required cookies are missing or JSON is malformed.
     """
-    storage_path = path or DEFAULT_STORAGE_PATH
-
-    if not storage_path.exists():
-        raise FileNotFoundError(
-            f"Storage file not found: {storage_path}\n"
-            f"Run 'notebooklm login' to authenticate first."
-        )
-
-    storage_state = json.loads(storage_path.read_text())
+    storage_state = _load_storage_state(path)
 
     cookies = httpx.Cookies()
     cookie_names = set()

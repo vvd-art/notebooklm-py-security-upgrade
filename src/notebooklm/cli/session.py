@@ -8,19 +8,24 @@ Commands:
 """
 
 import json
+import os
 from pathlib import Path
 
 import click
 from rich.table import Table
 
-from ..auth import AuthTokens, DEFAULT_STORAGE_PATH
+from ..auth import AuthTokens
 from ..client import NotebookLMClient
+from ..paths import (
+    get_storage_path,
+    get_context_path,
+    get_browser_profile_dir,
+    get_path_info,
+)
 from .helpers import (
     console,
     run_async,
     get_client,
-    CONTEXT_FILE,
-    BROWSER_PROFILE_DIR,
     get_current_notebook,
     set_current_notebook,
     clear_context,
@@ -37,14 +42,29 @@ def register_session_commands(cli):
         "--storage",
         type=click.Path(),
         default=None,
-        help=f"Where to save storage_state.json (default: {DEFAULT_STORAGE_PATH})",
+        help="Where to save storage_state.json (default: $NOTEBOOKLM_HOME/storage_state.json)",
     )
     def login(storage):
         """Log in to NotebookLM via browser.
 
         Opens a browser window for Google login. After logging in,
         press ENTER in the terminal to save authentication.
+
+        Note: Cannot be used when NOTEBOOKLM_AUTH_JSON is set (use file-based
+        auth or unset the env var first).
         """
+        # Check for conflicting env var
+        if os.environ.get("NOTEBOOKLM_AUTH_JSON"):
+            console.print(
+                "[red]Error: Cannot run 'login' when NOTEBOOKLM_AUTH_JSON is set.[/red]\n"
+                "The NOTEBOOKLM_AUTH_JSON environment variable provides inline authentication,\n"
+                "which conflicts with browser-based login that saves to a file.\n\n"
+                "Either:\n"
+                "  1. Unset NOTEBOOKLM_AUTH_JSON and run 'login' again\n"
+                "  2. Continue using NOTEBOOKLM_AUTH_JSON for authentication"
+            )
+            raise SystemExit(1)
+
         try:
             from playwright.sync_api import sync_playwright
         except ImportError:
@@ -55,16 +75,17 @@ def register_session_commands(cli):
             )
             raise SystemExit(1)
 
-        storage_path = Path(storage) if storage else DEFAULT_STORAGE_PATH
+        storage_path = Path(storage) if storage else get_storage_path()
+        browser_profile = get_browser_profile_dir()
         storage_path.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        BROWSER_PROFILE_DIR.mkdir(parents=True, exist_ok=True, mode=0o700)
+        browser_profile.mkdir(parents=True, exist_ok=True, mode=0o700)
 
         console.print("[yellow]Opening browser for Google login...[/yellow]")
-        console.print(f"[dim]Using persistent profile: {BROWSER_PROFILE_DIR}[/dim]")
+        console.print(f"[dim]Using persistent profile: {browser_profile}[/dim]")
 
         with sync_playwright() as p:
             context = p.chromium.launch_persistent_context(
-                user_data_dir=str(BROWSER_PROFILE_DIR),
+                user_data_dir=str(browser_profile),
                 headless=False,
                 args=[
                     "--disable-blink-features=AutomationControlled",
@@ -166,12 +187,43 @@ def register_session_commands(cli):
 
     @cli.command("status")
     @click.option("--json", "json_output", is_flag=True, help="Output as JSON")
-    def status(json_output):
-        """Show current context (active notebook and conversation)."""
+    @click.option("--paths", "show_paths", is_flag=True, help="Show resolved file paths")
+    def status(json_output, show_paths):
+        """Show current context (active notebook and conversation).
+
+        Use --paths to see where configuration files are located
+        (useful for debugging NOTEBOOKLM_HOME).
+        """
+        context_file = get_context_path()
         notebook_id = get_current_notebook()
+
+        # Handle --paths flag
+        if show_paths:
+            path_info = get_path_info()
+            if json_output:
+                json_output_response({"paths": path_info})
+                return
+
+            table = Table(title="Configuration Paths")
+            table.add_column("File", style="dim")
+            table.add_column("Path", style="cyan")
+            table.add_column("Source", style="green")
+
+            table.add_row("Home Directory", path_info["home_dir"], path_info["home_source"])
+            table.add_row("Storage State", path_info["storage_path"], "")
+            table.add_row("Context", path_info["context_path"], "")
+            table.add_row("Browser Profile", path_info["browser_profile_dir"], "")
+
+            # Show if NOTEBOOKLM_AUTH_JSON is set
+            if os.environ.get("NOTEBOOKLM_AUTH_JSON"):
+                console.print("[yellow]Note: NOTEBOOKLM_AUTH_JSON is set (inline auth active)[/yellow]\n")
+
+            console.print(table)
+            return
+
         if notebook_id:
             try:
-                data = json.loads(CONTEXT_FILE.read_text())
+                data = json.loads(context_file.read_text())
                 title = data.get("title", "-")
                 is_owner = data.get("is_owner", True)
                 created_at = data.get("created_at", "-")
