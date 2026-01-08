@@ -15,7 +15,6 @@ class TestResearchStart:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_start_fast_web_research(self, client, temp_notebook):
         """Test starting fast web research."""
         result = await client.research.start(
@@ -86,7 +85,6 @@ class TestResearchPoll:
     """Test polling for research results."""
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_poll_no_research(self, client, temp_notebook):
         """Test polling when no research has been started."""
         result = await client.research.poll(temp_notebook.id)
@@ -97,7 +95,6 @@ class TestResearchPoll:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_poll_after_start(self, client, temp_notebook):
         """Test polling after starting research."""
         # Start research
@@ -174,7 +171,6 @@ class TestResearchImport:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_import_empty_sources(self, client, temp_notebook):
         """Test importing empty sources list returns empty list."""
         result = await client.research.import_sources(

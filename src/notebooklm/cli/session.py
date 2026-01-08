@@ -67,7 +67,10 @@ def register_session_commands(cli):
             context = p.chromium.launch_persistent_context(
                 user_data_dir=str(BROWSER_PROFILE_DIR),
                 headless=False,
-                args=["--disable-blink-features=AutomationControlled"],
+                args=[
+                    "--disable-blink-features=AutomationControlled",
+                    "--password-store=basic",  # Avoid macOS keychain encryption for headless compatibility
+                ],
                 ignore_default_args=["--enable-automation"],
             )
 

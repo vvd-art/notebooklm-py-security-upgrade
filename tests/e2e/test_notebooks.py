@@ -109,7 +109,6 @@ class TestNotebookSharing:
     """Tests for notebook sharing operations - use temp_notebook."""
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_share_notebook(self, client, temp_notebook):
         """Test sharing a notebook."""
         result = await client.notebooks.share(temp_notebook.id, public=True)
@@ -120,7 +119,6 @@ class TestNotebookSharing:
         assert temp_notebook.id in result["url"]
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_revoke_share_notebook(self, client, temp_notebook):
         """Test revoking notebook sharing."""
         result = await client.notebooks.share(temp_notebook.id, public=False)
@@ -169,7 +167,6 @@ class TestNotebookRecent:
     """Tests for recent notebooks operations - use temp_notebook."""
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_remove_from_recent(self, client, temp_notebook):
         """Test removing notebook from recent list."""
         # This should complete without error

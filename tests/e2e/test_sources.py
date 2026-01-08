@@ -13,7 +13,6 @@ class TestSourceOperations:
     """
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_add_text_source(self, client, temp_notebook):
         """Test adding a text source to an owned notebook."""
         source = await client.sources.add_text(
@@ -27,7 +26,6 @@ class TestSourceOperations:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_add_url_source(self, client, temp_notebook):
         """Test adding a URL source to an owned notebook."""
         source = await client.sources.add_url(
@@ -40,7 +38,6 @@ class TestSourceOperations:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_add_youtube_source(self, client, temp_notebook):
         """Test adding a YouTube source to an owned notebook."""
         source = await client.sources.add_url(
@@ -122,7 +119,6 @@ class TestSourceMutations:
     """Tests that create/delete sources - use temp_notebook to avoid affecting test notebook."""
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_delete_source(self, client, temp_notebook):
         """Test deleting a source."""
         # Create a source to delete
@@ -208,7 +204,6 @@ class TestSourceStatus:
         assert len(ready_sources) > 0, "Expected at least one ready source in test notebook"
 
     @pytest.mark.asyncio
-    @pytest.mark.stable
     async def test_add_text_with_wait(self, client, temp_notebook):
         """Test adding a text source with wait=True."""
         source = await client.sources.add_text(
@@ -223,7 +218,6 @@ class TestSourceStatus:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_wait_until_ready(self, client, temp_notebook):
         """Test wait_until_ready() method."""
         # Add source without waiting
@@ -244,7 +238,6 @@ class TestSourceStatus:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_wait_for_multiple_sources(self, client, temp_notebook):
         """Test wait_for_sources() for batch operations."""
         # Add multiple sources without waiting

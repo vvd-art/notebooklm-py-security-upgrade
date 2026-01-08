@@ -177,7 +177,6 @@ class TestArtifactMutations:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
-    @pytest.mark.stable
     async def test_delete_artifact(self, client, temp_notebook):
         """Test deleting an artifact."""
         # Create a quiz artifact to delete

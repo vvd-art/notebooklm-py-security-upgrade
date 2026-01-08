@@ -309,6 +309,7 @@ async def download_urls_with_browser(
         context = await p.chromium.launch_persistent_context(
             user_data_dir=str(BROWSER_PROFILE_DIR),
             headless=True,
+            args=["--password-store=basic"],  # Match login command for cookie compatibility
         )
 
         try:
@@ -405,6 +406,7 @@ async def download_with_browser(
             user_data_dir=str(BROWSER_PROFILE_DIR),
             headless=True,
             accept_downloads=True,
+            args=["--password-store=basic"],  # Match login command for cookie compatibility
         )
 
         try:
