@@ -190,34 +190,6 @@ async def temp_notebook(client, created_notebooks, cleanup_notebooks):
     return notebook
 
 
-@pytest.fixture(scope="session")
-async def generation_notebook(auth_tokens) -> AsyncGenerator:
-    """Session-scoped notebook for slow generation tests.
-
-    Created once per test session with a source added.
-    Cleaned up at session end.
-    """
-    import asyncio
-    from uuid import uuid4
-
-    async with NotebookLMClient(auth_tokens) as client:
-        notebook = await client.notebooks.create(f"GenTest-{uuid4().hex[:8]}")
-        # Add a source so generation works
-        await client.sources.add_text(
-            notebook.id,
-            "This is test content for artifact generation. "
-            "It contains enough text to generate various artifacts like "
-            "audio overviews, quizzes, and summaries."
-        )
-        await asyncio.sleep(SOURCE_PROCESSING_DELAY)
-        yield notebook
-        # Cleanup
-        try:
-            await client.notebooks.delete(notebook.id)
-        except Exception as e:
-            warnings.warn(f"Failed to cleanup generation_notebook {notebook.id}: {e}")
-
-
 # =============================================================================
 # Test Infrastructure Fixtures (for tiered testing)
 # =============================================================================
