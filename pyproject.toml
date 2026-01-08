@@ -61,6 +61,7 @@ addopts = "--ignore=tests/e2e"
 markers = [
     "e2e: end-to-end tests requiring authentication",
     "slow: slow tests (artifact generation, 15+ min)",
+    "exhaustive: full coverage tests (deselect to minimize quota usage)",
     "golden: tests using golden notebook (read-only)",
     "mutation: tests that modify and revert golden data",
     "stable: tests that consistently pass",

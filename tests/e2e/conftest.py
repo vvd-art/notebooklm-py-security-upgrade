@@ -190,55 +190,27 @@ async def temp_notebook(client, created_notebooks, cleanup_notebooks):
     return notebook
 
 
-@pytest.fixture(scope="session")
-async def generation_notebook(auth_tokens) -> AsyncGenerator:
-    """Session-scoped notebook for slow generation tests.
-
-    Created once per test session with a source added.
-    Cleaned up at session end.
-    """
-    import asyncio
-    from uuid import uuid4
-
-    async with NotebookLMClient(auth_tokens) as client:
-        notebook = await client.notebooks.create(f"GenTest-{uuid4().hex[:8]}")
-        # Add a source so generation works
-        await client.sources.add_text(
-            notebook.id,
-            "This is test content for artifact generation. "
-            "It contains enough text to generate various artifacts like "
-            "audio overviews, quizzes, and summaries."
-        )
-        await asyncio.sleep(SOURCE_PROCESSING_DELAY)
-        yield notebook
-        # Cleanup
-        try:
-            await client.notebooks.delete(notebook.id)
-        except Exception as e:
-            warnings.warn(f"Failed to cleanup generation_notebook {notebook.id}: {e}")
-
-
 # =============================================================================
 # Test Infrastructure Fixtures (for tiered testing)
 # =============================================================================
 
 
 @pytest.fixture(scope="session")
-async def test_workspace(auth_tokens) -> AsyncGenerator:
-    """Session-scoped workspace notebook for all E2E tests.
+async def generation_notebook(auth_tokens) -> AsyncGenerator:
+    """Session-scoped notebook with content for generation tests.
 
     Creates a single notebook at session start with test content.
-    All tests can share this workspace to avoid creating/deleting
-    notebooks repeatedly. Cleaned up at session end.
+    Shared across all generation tests to avoid repeated setup.
+    Cleaned up at session end.
 
-    Note: Tests using this fixture MUST NOT modify the workspace state
-    (sources, settings) as it's shared across all tests.
+    Use for: artifact generation (audio, video, quiz, etc.)
+    Do NOT use for: CRUD tests (use temp_notebook instead)
     """
     import asyncio
     from uuid import uuid4
 
     async with NotebookLMClient(auth_tokens) as client:
-        notebook = await client.notebooks.create(f"E2E-Workspace-{uuid4().hex[:8]}")
+        notebook = await client.notebooks.create(f"GenTest-{uuid4().hex[:8]}")
 
         # Add a text source so the notebook has content for operations
         await client.sources.add_text(
@@ -263,7 +235,7 @@ async def test_workspace(auth_tokens) -> AsyncGenerator:
         try:
             await client.notebooks.delete(notebook.id)
         except Exception as e:
-            warnings.warn(f"Failed to cleanup test_workspace {notebook.id}: {e}")
+            warnings.warn(f"Failed to cleanup generation_notebook {notebook.id}: {e}")
 
 
 @pytest.fixture

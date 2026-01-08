@@ -19,18 +19,19 @@ class TestQuizGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_quiz_default(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        result = await client.artifacts.generate_quiz(test_notebook_id)
+        result = await client.artifacts.generate_quiz(generation_notebook.id)
         assert result is not None
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_quiz_with_options(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_quiz(
-            test_notebook_id,
+            generation_notebook.id,
             quantity=QuizQuantity.MORE,
             difficulty=QuizDifficulty.HARD,
             instructions="Focus on key concepts and definitions",
@@ -39,11 +40,12 @@ class TestQuizGeneration:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_quiz_fewer_easy(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_quiz(
-            test_notebook_id,
+            generation_notebook.id,
             quantity=QuizQuantity.FEWER,
             difficulty=QuizDifficulty.EASY,
         )
@@ -56,18 +58,19 @@ class TestFlashcardsGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_flashcards_default(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        result = await client.artifacts.generate_flashcards(test_notebook_id)
+        result = await client.artifacts.generate_flashcards(generation_notebook.id)
         assert result is not None
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_flashcards_with_options(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_flashcards(
-            test_notebook_id,
+            generation_notebook.id,
             quantity=QuizQuantity.STANDARD,
             difficulty=QuizDifficulty.MEDIUM,
             instructions="Create cards for vocabulary terms",
@@ -83,18 +86,19 @@ class TestInfographicGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_infographic_default(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        result = await client.artifacts.generate_infographic(test_notebook_id)
+        result = await client.artifacts.generate_infographic(generation_notebook.id)
         assert result is not None
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_infographic_portrait_detailed(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_infographic(
-            test_notebook_id,
+            generation_notebook.id,
             orientation=InfographicOrientation.PORTRAIT,
             detail_level=InfographicDetail.DETAILED,
             instructions="Include statistics and key findings",
@@ -103,11 +107,12 @@ class TestInfographicGeneration:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_infographic_square_concise(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_infographic(
-            test_notebook_id,
+            generation_notebook.id,
             orientation=InfographicOrientation.SQUARE,
             detail_level=InfographicDetail.CONCISE,
         )
@@ -115,11 +120,12 @@ class TestInfographicGeneration:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_infographic_landscape(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_infographic(
-            test_notebook_id,
+            generation_notebook.id,
             orientation=InfographicOrientation.LANDSCAPE,
         )
         assert result is not None
@@ -133,18 +139,19 @@ class TestSlideDeckGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_slide_deck_default(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        result = await client.artifacts.generate_slide_deck(test_notebook_id)
+        result = await client.artifacts.generate_slide_deck(generation_notebook.id)
         assert result is not None
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_slide_deck_detailed(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_slide_deck(
-            test_notebook_id,
+            generation_notebook.id,
             slide_format=SlideDeckFormat.DETAILED_DECK,
             slide_length=SlideDeckLength.DEFAULT,
             instructions="Include speaker notes",
@@ -153,11 +160,12 @@ class TestSlideDeckGeneration:
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_slide_deck_presenter_short(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_slide_deck(
-            test_notebook_id,
+            generation_notebook.id,
             slide_format=SlideDeckFormat.PRESENTER_SLIDES,
             slide_length=SlideDeckLength.SHORT,
         )
@@ -172,18 +180,19 @@ class TestDataTableGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_data_table_default(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        result = await client.artifacts.generate_data_table(test_notebook_id)
+        result = await client.artifacts.generate_data_table(generation_notebook.id)
         assert result is not None
 
     @pytest.mark.asyncio
     @pytest.mark.slow
+    @pytest.mark.exhaustive
     async def test_generate_data_table_with_instructions(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
         result = await client.artifacts.generate_data_table(
-            test_notebook_id,
+            generation_notebook.id,
             instructions="Create a comparison table of key concepts",
             language="en",
         )
@@ -195,13 +204,13 @@ class TestDataTableGeneration:
 class TestArtifactPolling:
     @pytest.mark.asyncio
     @pytest.mark.slow
-    async def test_poll_studio_status(self, client, test_notebook_id):
-        result = await client.artifacts.generate_quiz(test_notebook_id)
+    async def test_poll_studio_status(self, client, generation_notebook):
+        result = await client.artifacts.generate_quiz(generation_notebook.id)
         assert result is not None
         assert result.task_id, "Quiz generation should return a task_id"
 
         await asyncio.sleep(2)
-        status = await client.artifacts.poll_status(test_notebook_id, result.task_id)
+        status = await client.artifacts.poll_status(generation_notebook.id, result.task_id)
         # poll_status returns a GenerationStatus object
         assert status is not None
         assert hasattr(status, 'status')
@@ -219,9 +228,9 @@ class TestArtifactPolling:
 @pytest.mark.e2e
 class TestMindMapGeneration:
     @pytest.mark.asyncio
-    async def test_generate_mind_map(self, client, test_notebook_id):
+    async def test_generate_mind_map(self, client, generation_notebook):
         """Mind map generation is fast (~5-10s), not slow."""
-        result = await client.artifacts.generate_mind_map(test_notebook_id)
+        result = await client.artifacts.generate_mind_map(generation_notebook.id)
         assert result is not None
         assert "mind_map" in result
         assert "note_id" in result
@@ -238,15 +247,10 @@ class TestStudyGuideGeneration:
     @pytest.mark.asyncio
     @pytest.mark.slow
     async def test_generate_study_guide(
-        self, client, test_notebook_id, created_artifacts, cleanup_artifacts
+        self, client, generation_notebook, created_artifacts, cleanup_artifacts
     ):
-        """Test study guide generation.
-
-        Note: Uses test_notebook_id which should be a writable notebook
-        (not the read-only golden notebook). Set NOTEBOOKLM_TEST_NOTEBOOK_ID
-        environment variable to a writable notebook ID for this test.
-        """
-        result = await client.artifacts.generate_study_guide(test_notebook_id)
+        """Test study guide generation."""
+        result = await client.artifacts.generate_study_guide(generation_notebook.id)
         assert result is not None
 
 
