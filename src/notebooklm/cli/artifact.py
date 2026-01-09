@@ -89,30 +89,8 @@ def artifact_list(ctx, notebook_id, artifact_type, json_output, client_auth):
 
     async def _run():
         async with NotebookLMClient(client_auth) as client:
+            # artifacts.list() already includes mind maps from notes system
             artifacts = await client.artifacts.list(nb_id, artifact_type=type_filter)
-
-            # Also fetch mind maps (stored separately with notes)
-            if type_filter is None or type_filter == 5:
-                mind_maps = await client.notes.list_mind_maps(nb_id)
-                for mm in mind_maps:
-                    if isinstance(mm, list) and len(mm) > 0:
-                        mm_id = mm[0] if len(mm) > 0 else ""
-                        title = "Mind Map"
-                        if (
-                            len(mm) > 1
-                            and isinstance(mm[1], list)
-                            and len(mm[1]) > 4
-                        ):
-                            title = mm[1][4] or "Mind Map"
-                        mm_artifact = Artifact(
-                            id=str(mm_id),
-                            title=str(title),
-                            artifact_type=5,
-                            status=3,
-                            created_at=None,
-                            variant=None,
-                        )
-                        artifacts.append(mm_artifact)
 
             nb = None
             if json_output:

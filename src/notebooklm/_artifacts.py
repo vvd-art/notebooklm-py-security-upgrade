@@ -692,6 +692,9 @@ class ArtifactsAPI:
     ) -> dict[str, Any]:
         """Generate an interactive mind map.
 
+        The mind map is generated and saved as a note in the notebook.
+        It will appear in artifact listings with type MIND_MAP (5).
+
         Args:
             notebook_id: The notebook ID.
             source_ids: Source IDs to include. If None, uses all sources.
@@ -699,6 +702,8 @@ class ArtifactsAPI:
         Returns:
             Dictionary with 'mind_map' (JSON data) and 'note_id'.
         """
+        import json as json_module
+
         if source_ids is None:
             source_ids = await self._get_source_ids(notebook_id)
 
@@ -726,17 +731,27 @@ class ArtifactsAPI:
             inner = result[0]
             if isinstance(inner, list) and len(inner) > 0:
                 mind_map_json = inner[0]
-                note_info = inner[2] if len(inner) > 2 else None
-                note_id = note_info[0] if note_info and isinstance(note_info, list) else None
 
+                # Parse the mind map JSON
                 if isinstance(mind_map_json, str):
-                    import json
                     try:
-                        mind_map_data = json.loads(mind_map_json)
-                    except json.JSONDecodeError:
+                        mind_map_data = json_module.loads(mind_map_json)
+                    except json_module.JSONDecodeError:
                         mind_map_data = mind_map_json
+                        mind_map_json = str(mind_map_json)
                 else:
                     mind_map_data = mind_map_json
+                    mind_map_json = json_module.dumps(mind_map_json)
+
+                # Extract title from mind map data
+                title = "Mind Map"
+                if isinstance(mind_map_data, dict) and "name" in mind_map_data:
+                    title = mind_map_data["name"]
+
+                # The ACT_ON_SOURCES RPC generates content but does NOT persist it.
+                # We must explicitly create a note to save the mind map.
+                note = await self._notes.create(notebook_id, title=title, content=mind_map_json)
+                note_id = note.id if note else None
 
                 return {
                     "mind_map": mind_map_data,

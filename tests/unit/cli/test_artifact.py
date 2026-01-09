@@ -57,12 +57,13 @@ class TestArtifactList:
             assert "Quiz One" in result.output or "art_1" in result.output
 
     def test_artifact_list_includes_mind_maps(self, runner, mock_auth):
+        """Test that artifacts.list() includes mind maps (they come from the API now)."""
         with patch_client_for_module("artifact") as mock_client_cls:
             mock_client = create_mock_client()
-            mock_client.artifacts.list = AsyncMock(return_value=[])
-            mock_client.notes.list_mind_maps = AsyncMock(
+            # Mind maps are now included via artifacts.list() from the notes system
+            mock_client.artifacts.list = AsyncMock(
                 return_value=[
-                    ["mm_1", ["mm_1", "{}", None, None, "My Mind Map"]],
+                    Artifact(id="mm_1", title="My Mind Map", artifact_type=5, status=3),
                 ]
             )
             mock_client_cls.return_value = mock_client

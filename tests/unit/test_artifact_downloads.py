@@ -26,6 +26,10 @@ def mock_artifacts_api():
     mock_core.rpc_call = AsyncMock()
     mock_notes = MagicMock()
     mock_notes.list_mind_maps = AsyncMock(return_value=[])
+    # Mock create to return a Note-like object with an id
+    mock_note = MagicMock()
+    mock_note.id = "created_note_123"
+    mock_notes.create = AsyncMock(return_value=mock_note)
     api = ArtifactsAPI(mock_core, notes_api=mock_notes)
     return api, mock_core
 
@@ -283,7 +287,7 @@ class TestMindMapGeneration:
             [[
                 '{"nodes": [{"id": "1", "text": "Root"}]}',  # JSON string
                 None,
-                ["note_123"],  # note info
+                ["note_123"],  # note info (not used anymore, note is created explicitly)
             ]],
         ]
 
@@ -291,7 +295,8 @@ class TestMindMapGeneration:
 
         assert result is not None
         assert "mind_map" in result
-        assert result["note_id"] == "note_123"
+        # note_id is now from the explicitly created note
+        assert result["note_id"] == "created_note_123"
 
     @pytest.mark.asyncio
     async def test_generate_mind_map_with_dict(self, mock_artifacts_api):
@@ -302,7 +307,7 @@ class TestMindMapGeneration:
             [[
                 {"nodes": [{"id": "1"}]},  # Already a dict
                 None,
-                ["note_456"],
+                ["note_456"],  # note info (not used anymore)
             ]],
         ]
 
@@ -310,6 +315,8 @@ class TestMindMapGeneration:
 
         assert result is not None
         assert result["mind_map"]["nodes"][0]["id"] == "1"
+        # note_id is now from the explicitly created note
+        assert result["note_id"] == "created_note_123"
 
     @pytest.mark.asyncio
     async def test_generate_mind_map_empty_result(self, mock_artifacts_api):
