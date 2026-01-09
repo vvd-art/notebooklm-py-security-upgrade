@@ -12,7 +12,6 @@ Provides common functionality for all CLI commands:
 import asyncio
 import json
 from functools import wraps
-from pathlib import Path
 
 import click
 from rich.console import Console
