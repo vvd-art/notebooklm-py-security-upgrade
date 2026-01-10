@@ -1,7 +1,7 @@
 # CLI Reference
 
 **Status:** Active
-**Last Updated:** 2026-01-08
+**Last Updated:** 2026-01-10
 
 Complete command reference for the `notebooklm` CLI.
 
@@ -519,7 +519,7 @@ done
 
 When using this CLI programmatically:
 
-1. **Always set context first**: Use `notebooklm use <id>` before running commands that operate on a notebook.
+1. **Two ways to specify notebooks**: Either use `notebooklm use <id>` to set context, OR pass `-n <id>` directly to commands. Most commands support `-n/--notebook` as an explicit override.
 
 2. **Use `--wait` for generation**: Generation commands return immediately by default. Add `--wait` to block until complete.
 
