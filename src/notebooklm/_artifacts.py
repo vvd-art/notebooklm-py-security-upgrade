@@ -9,11 +9,14 @@ import asyncio
 import builtins
 import csv
 import html
+import ipaddress
 import json
 import logging
 import re
+import socket
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
+from urllib.parse import urlparse
 
 import httpx
 
@@ -61,6 +64,75 @@ _MEDIA_ARTIFACT_TYPES = frozenset(
         ArtifactTypeCode.SLIDE_DECK.value,
     }
 )
+
+
+_ALLOWED_DOWNLOAD_HOST_SUFFIXES = (
+    "google.com",
+    "googleusercontent.com",
+    "usercontent.google.com",
+)
+
+
+def _is_allowed_download_host(host: str) -> bool:
+    """Check if host is in the trusted Google download domain allowlist."""
+    normalized = host.strip(".").lower()
+    return any(
+        normalized == suffix or normalized.endswith(f".{suffix}")
+        for suffix in _ALLOWED_DOWNLOAD_HOST_SUFFIXES
+    )
+
+
+def _is_private_or_local_host(host: str) -> bool:
+    """Resolve host and reject private/loopback/link-local/reserved addresses."""
+    addresses: set[ipaddress.IPv4Address | ipaddress.IPv6Address] = set()
+
+    try:
+        addresses.add(ipaddress.ip_address(host))
+    except ValueError:
+        try:
+            infos = socket.getaddrinfo(host, None)
+        except socket.gaierror:
+            return True
+
+        for info in infos:
+            try:
+                addresses.add(ipaddress.ip_address(info[4][0]))
+            except ValueError:
+                return True
+
+    return any(
+        ip.is_private
+        or ip.is_loopback
+        or ip.is_link_local
+        or ip.is_multicast
+        or ip.is_reserved
+        or ip.is_unspecified
+        for ip in addresses
+    )
+
+
+def _validate_download_url(url: str) -> None:
+    """Validate outbound media download URL against security constraints."""
+    parsed = urlparse(url)
+    host = parsed.hostname
+
+    if parsed.scheme != "https" or not host:
+        raise ArtifactDownloadError(
+            "media",
+            details="Download URL must use HTTPS and include a valid hostname.",
+        )
+
+    if not _is_allowed_download_host(host):
+        raise ArtifactDownloadError(
+            "media",
+            details=f"Download host is not in allowlist: {host}",
+        )
+
+    if _is_private_or_local_host(host):
+        raise ArtifactDownloadError(
+            "media",
+            details=f"Download host resolves to private/local address: {host}",
+        )
 
 if TYPE_CHECKING:
     from ._notes import NotesAPI
@@ -1914,8 +1986,10 @@ class ArtifactsAPI:
         ) as client:
             for url, output_path in urls_and_paths:
                 try:
+                    _validate_download_url(url)
                     response = await client.get(url)
                     response.raise_for_status()
+                    _validate_download_url(str(response.url))
 
                     content_type = response.headers.get("content-type", "")
                     if "text/html" in content_type:
@@ -1929,7 +2003,7 @@ class ArtifactsAPI:
                     downloaded.append(output_path)
                     logger.debug("Downloaded %s (%d bytes)", url[:60], len(response.content))
 
-                except (httpx.HTTPError, ValueError) as e:
+                except (httpx.HTTPError, ValueError, ArtifactDownloadError) as e:
                     logger.warning("Download failed for %s: %s", url[:60], e)
 
         return downloaded
@@ -1957,6 +2031,9 @@ class ArtifactsAPI:
         # Use temp file to avoid leaving corrupted partial files on failure
         temp_file = output_file.with_suffix(output_file.suffix + ".tmp")
 
+        # Validate URL before any network or credential operations
+        _validate_download_url(url)
+
         # Load cookies with domain info for cross-domain redirect handling
         cookies = load_httpx_cookies()
 
@@ -1975,6 +2052,7 @@ class ArtifactsAPI:
             ) as client:
                 async with client.stream("GET", url) as response:
                     response.raise_for_status()
+                    _validate_download_url(str(response.url))
 
                     content_type = response.headers.get("content-type", "")
                     if "text/html" in content_type:

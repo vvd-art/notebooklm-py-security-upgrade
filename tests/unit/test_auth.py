@@ -302,6 +302,37 @@ class TestLoadAuthFromEnvVar:
             load_auth_from_storage()
 
 
+class TestLoadAuthFromEnvFile:
+    """Test NOTEBOOKLM_AUTH_JSON_FILE env var support."""
+
+    def test_loads_from_env_file(self, tmp_path, monkeypatch):
+        storage_file = tmp_path / "auth.json"
+        storage_state = {
+            "cookies": [
+                {"name": "SID", "value": "sid_from_file_env", "domain": ".google.com"},
+                {"name": "HSID", "value": "hsid_from_file_env", "domain": ".google.com"},
+            ]
+        }
+        storage_file.write_text(json.dumps(storage_state))
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON_FILE", str(storage_file))
+
+        cookies = load_auth_from_storage()
+        assert cookies["SID"] == "sid_from_file_env"
+
+    def test_env_file_takes_precedence_over_inline_json(self, tmp_path, monkeypatch):
+        storage_file = tmp_path / "auth.json"
+        storage_file.write_text(
+            json.dumps({"cookies": [{"name": "SID", "value": "from_file", "domain": ".google.com"}]})
+        )
+        monkeypatch.setenv("NOTEBOOKLM_AUTH_JSON_FILE", str(storage_file))
+        monkeypatch.setenv(
+            "NOTEBOOKLM_AUTH_JSON",
+            json.dumps({"cookies": [{"name": "SID", "value": "from_inline", "domain": ".google.com"}]}),
+        )
+
+        cookies = load_auth_from_storage()
+        assert cookies["SID"] == "from_file"
+
 class TestLoadHttpxCookiesWithEnvVar:
     """Test load_httpx_cookies with NOTEBOOKLM_AUTH_JSON env var."""
 

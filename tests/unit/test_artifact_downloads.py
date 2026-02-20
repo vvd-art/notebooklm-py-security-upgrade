@@ -9,6 +9,7 @@ import pytest
 from notebooklm._artifacts import ArtifactsAPI
 from notebooklm.auth import AuthTokens
 from notebooklm.types import (
+    ArtifactDownloadError,
     ArtifactNotFoundError,
     ArtifactNotReadyError,
     ArtifactParseError,
@@ -380,6 +381,7 @@ class TestDownloadUrl:
 
             mock_response = MagicMock()
             mock_response.headers = {"content-type": "video/mp4"}
+            mock_response.url = "https://lh3.googleusercontent.com/file.mp4"
             mock_response.raise_for_status = MagicMock()
             mock_response.aiter_bytes = mock_aiter_bytes
             mock_response.__aenter__ = AsyncMock(return_value=mock_response)
@@ -394,13 +396,24 @@ class TestDownloadUrl:
             with (
                 patch.object(real_httpx, "AsyncClient", return_value=mock_client),
                 patch("notebooklm._artifacts.load_httpx_cookies", return_value=mock_cookies),
+                patch("notebooklm._artifacts._is_private_or_local_host", return_value=False),
             ):
-                result = await api._download_url("https://other.example.com/file.mp4", output_path)
+                result = await api._download_url("https://lh3.googleusercontent.com/file.mp4", output_path)
 
             assert result == output_path
             # Verify file was written with streaming content
             with open(output_path, "rb") as f:
                 assert f.read() == content
+
+    @pytest.mark.asyncio
+    async def test_download_url_rejects_non_allowlisted_host(self, mock_artifacts_api):
+        """Test that outbound downloads reject non-Google hosts."""
+        api, _ = mock_artifacts_api
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, "file.mp4")
+            with pytest.raises(ArtifactDownloadError, match="allowlist"):
+                await api._download_url("https://evil.example.com/file.mp4", output_path)
 
 
 class TestDownloadReport:

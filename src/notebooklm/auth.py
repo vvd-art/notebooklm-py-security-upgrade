@@ -412,8 +412,9 @@ def _load_storage_state(path: Path | None = None) -> dict[str, Any]:
 
     Precedence:
     1. Explicit path argument (from --storage CLI flag)
-    2. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
-    3. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
+    2. NOTEBOOKLM_AUTH_JSON_FILE environment variable (path to JSON file)
+    3. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
+    4. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
 
     Args:
         path: Path to storage_state.json. If provided, takes precedence over env vars.
@@ -433,7 +434,22 @@ def _load_storage_state(path: Path | None = None) -> dict[str, Any]:
             )
         return json.loads(path.read_text(encoding="utf-8"))
 
-    # 2. Check for inline JSON env var (CI-friendly, no file writes needed)
+    # 2. Check for file path env var (CI-friendly, avoids large inline env values)
+    if "NOTEBOOKLM_AUTH_JSON_FILE" in os.environ:
+        auth_file_raw = os.environ["NOTEBOOKLM_AUTH_JSON_FILE"].strip()
+        if not auth_file_raw:
+            raise ValueError(
+                "NOTEBOOKLM_AUTH_JSON_FILE environment variable is set but empty.\n"
+                "Provide a valid file path or unset the variable."
+            )
+        auth_file = Path(auth_file_raw).expanduser()
+        if not auth_file.exists():
+            raise FileNotFoundError(
+                f"NOTEBOOKLM_AUTH_JSON_FILE points to a missing file: {auth_file}"
+            )
+        return json.loads(auth_file.read_text(encoding="utf-8"))
+
+    # 3. Check for inline JSON env var (CI-friendly, no file writes needed)
     # Note: Use 'in' check instead of walrus to catch empty string case
     if "NOTEBOOKLM_AUTH_JSON" in os.environ:
         auth_json = os.environ["NOTEBOOKLM_AUTH_JSON"].strip()
@@ -458,7 +474,7 @@ def _load_storage_state(path: Path | None = None) -> dict[str, Any]:
             )
         return storage_state
 
-    # 3. Fall back to file (respects NOTEBOOKLM_HOME)
+    # 4. Fall back to file (respects NOTEBOOKLM_HOME)
     storage_path = get_storage_path()
 
     if not storage_path.exists():
@@ -474,8 +490,9 @@ def load_auth_from_storage(path: Path | None = None) -> dict[str, str]:
 
     Loads authentication cookies with the following precedence:
     1. Explicit path argument (from --storage CLI flag)
-    2. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
-    3. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
+    2. NOTEBOOKLM_AUTH_JSON_FILE environment variable (path to JSON file)
+    3. NOTEBOOKLM_AUTH_JSON environment variable (inline JSON, no file needed)
+    4. File at $NOTEBOOKLM_HOME/storage_state.json (or ~/.notebooklm/storage_state.json)
 
     Args:
         path: Path to storage_state.json. If provided, takes precedence over env vars.
@@ -546,8 +563,9 @@ def load_httpx_cookies(path: Path | None = None) -> "httpx.Cookies":
 
     Supports the same precedence as load_auth_from_storage():
     1. Explicit path argument (from --storage CLI flag)
-    2. NOTEBOOKLM_AUTH_JSON environment variable
-    3. File at $NOTEBOOKLM_HOME/storage_state.json
+    2. NOTEBOOKLM_AUTH_JSON_FILE environment variable
+    3. NOTEBOOKLM_AUTH_JSON environment variable
+    4. File at $NOTEBOOKLM_HOME/storage_state.json
 
     Args:
         path: Path to storage_state.json. If provided, takes precedence over env vars.
