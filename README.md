@@ -193,6 +193,10 @@ notebooklm skill install
 - **[Configuration](docs/configuration.md)** - Storage and settings
 - **[Troubleshooting](docs/troubleshooting.md)** - Common issues and solutions
 - **[API Stability](docs/stability.md)** - Versioning policy and stability guarantees
+- **[SOUL Policy](docs/SOUL-POLICY.md)** - Agent behavior tiers, boundaries, and incident mode
+- **[Memory Governance](docs/MEMORY-GOVERNANCE.md)** - Memory lifecycle and quality controls
+- **[PII Gateway Spec](docs/PII-GATEWAY-SPEC.md)** - Redaction/rehydration and fail-close controls
+- **[OpenClaw Config Baseline](docs/OPENCLAW-CONFIG-BASELINE.md)** - Practical hardening baseline
 
 ### For Contributors
 
